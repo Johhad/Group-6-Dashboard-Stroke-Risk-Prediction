@@ -1,7 +1,7 @@
 [theme]
 base = "light"
-primaryColor = "#faf2f3ff"
-backgroundColor ="#d7eef8ff"
+primaryColor = "#f2f4faff"
+backgroundColor ="#e3f1f7ff"
 # secondaryBackgroundColor =
 # textColor =
 # linkColor =
