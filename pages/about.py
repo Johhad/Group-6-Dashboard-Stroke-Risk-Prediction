@@ -1,7 +1,5 @@
 import streamlit as st
 
-st.sidebar.markdown("# About ℹ️")
-
 from forms.contact import contact_form
 
 #---define forms for contact---
