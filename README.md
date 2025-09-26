@@ -177,8 +177,7 @@ Creating pre-trained models for the web dashboadr
 This logic resembles the expected pipeline, where the jupyter notebooks are used to iterate the data modeling part until a satisfactory trained model is created, and the streamlit scripts are only in charge of rendering the user-facing interface to generate the prediction for new data. In practice, the data science pipeline is completely independent from the web dashboard, and both are connected via the pre-trained model.
 
 Contributors
-<<<<<<< HEAD Add the project's authors, contact information, and links to their websites or portfolios. Johannes Haddad Pamela Castillo- pamela.abigail.castillo.gonzalez@ki.stud.se Htet Wai Aung, htau6812@student.su.se Pardon Runesu (pardonm6@gmail.com) Chantale NzeggeMvele
-_You can modify this README file with all the information that your team consider relevant for a technical audience who would like to understand your project or to run it in the future._
+Johannes Haddad Pamela Castillo- pamela.abigail.castillo.gonzalez@ki.stud.se Htet Wai Aung, htau6812@student.su.se Pardon Runesu (pardonm6@gmail.com) Chantale NzeggeMvele
 
 
 
