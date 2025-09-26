@@ -84,7 +84,7 @@ with col2:
         - 🌐 Website: www.neuropredict.com
         - 📞 Phone: +1-800-555-1234
         
-                    ### Version
+        ### Version
         **Current Version:** 1.0.0
         **Last Updated:** 2024
         
