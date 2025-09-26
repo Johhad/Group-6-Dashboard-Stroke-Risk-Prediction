@@ -9,6 +9,13 @@ st.set_page_config(
 st.sidebar.image("./assets/NeuroPredict.png",)
 st.sidebar.success("Select a tab above.")
 
+# Page configuration
+st.set_page_config(
+    page_title="NeuroPredict Dashboard",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 # # Page information
 
 st.write("# Welcome to Stroke prediction Dashboard ")
