@@ -1,9 +1,9 @@
 
 base = "light"
-primaryColor = "rgba(141, 233, 240, 1)"
+primaryColor = "rgba(111, 181, 190, 1)"
 
-# Background color of the app.
-backgroundColor =
+# Background color of the app
+backgroundColor ="#b4dff3ff"
 
 # Background color used for most interactive widgets.
 secondaryBackgroundColor =
