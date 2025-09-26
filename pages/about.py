@@ -82,7 +82,7 @@ with col2:
         ### Contact
         📧 Email: info@neuropredict.com
         🌐 Website: www.neuropredict.com
-        📱 Support: +1-XXX-XXX-XXXX
+         
         
         ### Version
         **Current Version:** 1.0.0
@@ -92,10 +92,9 @@ with col2:
         This tool is for educational and screening purposes only. It should not replace 
         professional medical advice, diagnosis, or treatment.
         """)
-
         if st.button('✉️Contact us'):
-            show_contact_form()  
-
+            show_contact_form() 
+        
 st.info("""
     ### Future Enhancements
     - Integration with Electronic Health Records (EHR)
