@@ -93,8 +93,9 @@ with col2:
         professional medical advice, diagnosis, or treatment.
         """)
 
-    if st.button('✉️Contact us'):
-        show_contact_form()  
+        if st.button('✉️Contact us'):
+            show_contact_form()  
+
 st.info("""
     ### Future Enhancements
     - Integration with Electronic Health Records (EHR)
