@@ -38,7 +38,7 @@ st.markdown(
 col1, col2 = st.columns([2, 1])
     
 with col1:
-        st.image("./assets/SU_Logo.png", width=400)
+        st.image("./assets/SU_Logo.png", width=500)
         st.markdown("""
         ### Project Overview
         
