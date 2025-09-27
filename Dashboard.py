@@ -32,7 +32,7 @@ st.set_page_config(
 about_page = st.Page(page= "pages/About.py",title= "About", icon= ":material/info:",default=True,)
 project_1_page = st.Page(page= "pages/Descriptive_Analytics.py", title ="Descriptive Analytics", icon = "📊")
 project_2_page = st.Page(page= "pages/Predictive_Analytics.py", title= "Predictive Analytics", icon = "📈")
-project_3_page = st. Page(page= "pages/Diagnostic_Analytics.py", title= "Diagnostic Analytics", icon=  )
+project_3_page = st.Page(page= "pages/Diagnostic_Analytics.py", title= "Diagnostic Analytics", icon= "🩺")
 patient_data_page = st.Page(page= "pages/Risk_prediction.py", title= "Risk Prediction", icon = "🧑‍⚕️")
 
 #--Navigation setup [sections]--
