@@ -55,7 +55,7 @@ with tab2:
         
 with col1:
     # Stroke distribution
-    stroke_counts = df['stroke'].value_counts()
+    stroke_counts = df['Ever had a Stroke?'].value_counts()
     fig_stroke = px.pie(values=stroke_counts.values, 
                         names=['No Stroke', 'Stroke'],
                         title='Stroke Distribution',
@@ -65,7 +65,7 @@ with col1:
         
 with col2:
     # Heart Disease and Stroke
-    fig_heart = px.bar(df.groupby(['Heart_disease', 'Stroke']).size().reset_index(name='count'),
+    fig_heart = px.bar(df.groupby(['Heart_disease', 'Ever had a Stroke?']).size().reset_index(name='count'),
                         x='heart_disease', y='count', color='stroke',
                         title='Heart Disease and Stroke',
                         labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
