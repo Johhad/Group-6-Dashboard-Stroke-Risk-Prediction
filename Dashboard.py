@@ -30,6 +30,7 @@ st.set_page_config(
 #--- Page setup---
 
 about_page = st.Page(page= "pages/About.py",title= "About", icon= ":material/info:",default=True,)
+patient_data_page= st.Page(page="pages/Patient_Data.py",title="Patient Data",icon="🧑‍⚕️")
 project_1_page = st.Page(page= "pages/Descriptive_Analytics.py", title ="Descriptive Analytics", icon = "📊")
 project_2_page = st.Page(page= "pages/Diagnostic_Analytics.py", title= "Diagnostic Analytics", icon= "🩺")
 project_3_page = st. Page(page= "pages/Preventive_Analytics.py", title= "Preventive Analytics", icon = "🛡️")
@@ -47,31 +48,3 @@ pg = st.navigation(
 #---Run navigation---
 pg.run()
 
-
-# You can also add text right into the web as long comments (""")
-"""
-The final project aims to apply data science concepts and skills on a 
-medical case study that you and your team select from a public data source.
-The project assumes that you bring the technical Python skills from 
-previous courses (*DSHI*: Data Science for Health Informatics), as well as 
-the analytical skills to argue how and why specific techniques could
-enhance the problem domain related to the selected dataset.
-"""
-
-# DATAFRAME MANAGEMENT
-import numpy as np
-
-dataframe = np.random.randn(10, 20)
-st.dataframe(dataframe)
-
-# Add a selectbox to the sidebar:
-add_selectbox = st.selectbox(
-    'How would you like to be contacted?',
-    ('Email', 'Home phone', 'Mobile phone')
-)
-
-# Add a slider to the sidebar:
-add_slider = st.slider(
-    'Select a range of values',
-    0.0, 100.0, (25.0, 75.0)
-)
