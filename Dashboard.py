@@ -88,6 +88,7 @@ st.markdown("""""
 about_page = st.Page(page= "pages/About.py",title= "About", icon= ":material/info:",default=True,)
 project_1_page = st.Page(page= "pages/Descriptive_Analytics.py", title ="Descriptive Analytics", icon = "📊")
 project_2_page = st.Page(page= "pages/Diagnostic_Analytics.py", title= "Diagnostic Analytics", icon = "🩺")
+project_3_page = st.Page(page= "pages/Risk_prediction.py", title= "Rish Prediction Analytics", icon = "🤖")
 project_4_page = st.Page(page= "pages/What-IF/Preventive_Analytics.py", title= "What-IF/Preventive Analytics", icon = "🛡️")
 
 #--Navigation setup [sections]--
