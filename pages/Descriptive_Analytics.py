@@ -1,14 +1,29 @@
 import streamlit as st
 
 
-"""
-Add here some descriptive analytics with Widgets and Plots
+#🔗 Link: <https://plotly.com/python/scientific-charts/>
 
-### ⚠️ In-class exercise: Integrate a plot from plotly examples
+@st.cache_data
+def load_data():
+    import pandas as pd
+    df = pd.read_csv('./jupyter-notebooks/processed_data.csv')
+    return df
 
-🔗 Link: <https://plotly.com/python/scientific-charts/>
-"""
+df = load_data()
 
+# Percentage of women
+percentage_women = (df['Sex'] =='Female').mean() * 100
+
+# Percentage of men
+percentage_men = (df['Sex'] =='Male').mean() * 100
+
+#Mean age 
+mean_age = df["Age"].mean()
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Percentage of women (%)", f"{percentage_women: .2f}", border=True)
+col2.metric("Percentage of men (%)", f"{percentage_men: .2f}", border=True)
+col2.metric("Mean age (%)", f"{mean_age: .2f}", border=True)
 
 import numpy as np
 import plotly.figure_factory as ff
