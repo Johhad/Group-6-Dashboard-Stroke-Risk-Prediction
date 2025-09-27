@@ -89,14 +89,14 @@ about_page = st.Page(page= "pages/About.py",title= "About", icon= ":material/inf
 project_1_page = st.Page(page= "pages/Descriptive_Analytics.py", title ="Descriptive Analytics", icon = "📊")
 project_2_page = st.Page(page= "pages/Diagnostic_Analytics.py", title= "Diagnostic Analytics", icon = "🩺")
 project_3_page = st.Page(page= "pages/Risk_prediction.py", title= "Rish Prediction Analytics", icon = "🤖")
-project_4_page = st.Page(page= "pages/What-IF/Preventive_Analytics.py", title= "What-IF/Preventive Analytics", icon = "🛡️")
+project_4_page = st.Page(page= "pages/Preventive_Analytics.py", title= "What-If/Preventive Analytics", icon = "🛡️")
 
 #--Navigation setup [sections]--
 pg = st.navigation(
     {
         "Info": [about_page],
         "Patient": [patient_data_page],
-        "Project": [project_1_page, project_2_page],
+        "Project": [project_1_page, project_2_page, project_3_page, project_4_page],
         
     }
 )
