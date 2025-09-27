@@ -44,7 +44,7 @@ with col1:
         
 with col2:
     # Gender distribution
-    gender_counts = df['Gender'].value_counts()
+    gender_counts = df['Sex'].value_counts()
     fig_gender = px.pie(values=gender_counts.values, names=gender_counts.index,
                                title='Gender Distribution', color_discrete_map={'Male': '#1f77b4', 'Female': '#ff7f0e'})
     fig_gender.update_layout(height=400)
