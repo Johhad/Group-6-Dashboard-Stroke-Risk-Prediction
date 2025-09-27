@@ -35,42 +35,42 @@ tab1, tab2, tab3 = st.tabs(["Demographics", "Risk Factors", "Correlations"])
 with tab1:
     col1, col2 = st.columns(2)
         
-with col1:
-    # Age distribution
-    fig_age = px.histogram(df, x='Age', nbins=20, title='Age Distribution',
+    with col1:
+        # Age distribution
+        fig_age = px.histogram(df, x='Age', nbins=20, title='Age Distribution',
                                    color_discrete_sequence=['#1f77b4'])
-    fig_age.update_layout(height=400)
-    st.plotly_chart(fig_age, use_container_width=True)
+        fig_age.update_layout(height=400)
+        st.plotly_chart(fig_age, use_container_width=True)
         
-with col2:
-    # Gender distribution
-    gender_counts = df['Sex'].value_counts()
-    fig_gender = px.pie(values=gender_counts.values, names=gender_counts.index,
+    with col2:
+        # Gender distribution
+        gender_counts = df['Sex'].value_counts()
+        fig_gender = px.pie(values=gender_counts.values, names=gender_counts.index,
                                title='Gender Distribution', color_discrete_map={'Male': '#1f77b4', 'Female': '#ff7f0e'})
-    fig_gender.update_layout(height=400)
-    st.plotly_chart(fig_gender, use_container_width=True)
+        fig_gender.update_layout(height=400)
+        st.plotly_chart(fig_gender, use_container_width=True)
     
 with tab2:
     col1, col2 = st.columns(2)
         
-with col1:
-    # Stroke distribution
-    stroke_counts = df['Stroke'].value_counts()
-    fig_stroke = px.pie(values=stroke_counts.values, 
-                        names=['No Stroke', 'Stroke'],
-                        title='Stroke Distribution',
-                        color_discrete_sequence=['#2ca02c', '#d62728'])
-    fig_stroke.update_layout(height=400)
-    st.plotly_chart(fig_stroke, use_container_width=True)
+    with col1:
+        # Stroke distribution
+        stroke_counts = df['Stroke'].value_counts()
+        fig_stroke = px.pie(values=stroke_counts.values, 
+                            names=['No Stroke', 'Stroke'],
+                            title='Stroke Distribution',
+                            color_discrete_sequence=['#2ca02c', '#d62728'])
+        fig_stroke.update_layout(height=400)
+        st.plotly_chart(fig_stroke, use_container_width=True)
         
-with col2:
-    # Heart Disease and Stroke
-    fig_heart = px.bar(df.groupby(['Heart disease', 'Stroke']).size().reset_index(name='count'),
-                        x='heart_disease', y='count', color='stroke',
-                        title='Heart Disease and Stroke',
-                        labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
-    fig_heart.update_layout(height=400)
-    st.plotly_chart(fig_heart, use_container_width=True)
+    with col2:
+        # Heart Disease and Stroke
+        fig_heart = px.bar(df.groupby(['Heart disease', 'Stroke']).size().reset_index(name='count'),
+                            x='heart_disease', y='count', color='stroke',
+                            title='Heart Disease and Stroke',
+                            labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
+        fig_heart.update_layout(height=400)
+        st.plotly_chart(fig_heart, use_container_width=True)
     
 with tab3:
     # Correlation matrix for numerical features
