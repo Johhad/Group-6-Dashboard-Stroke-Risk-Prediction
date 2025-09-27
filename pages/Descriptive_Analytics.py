@@ -37,14 +37,14 @@ with tab1:
         
 with col1:
     # Age distribution
-    fig_age = px.histogram(data, x='age', nbins=20, title='Age Distribution',
+    fig_age = px.histogram(df, x='age', nbins=20, title='Age Distribution',
                                    color_discrete_sequence=['#1f77b4'])
     fig_age.update_layout(height=400)
     st.plotly_chart(fig_age, use_container_width=True)
         
 with col2:
     # Gender distribution
-    gender_counts = data['gender'].value_counts()
+    gender_counts = df['gender'].value_counts()
     fig_gender = px.pie(values=gender_counts.values, names=gender_counts.index,
                                title='Gender Distribution', color_discrete_map={'Male': '#1f77b4', 'Female': '#ff7f0e'})
     fig_gender.update_layout(height=400)
@@ -55,7 +55,7 @@ with tab2:
         
 with col1:
     # Stroke distribution
-    stroke_counts = data['stroke'].value_counts()
+    stroke_counts = df['stroke'].value_counts()
     fig_stroke = px.pie(values=stroke_counts.values, 
                         names=['No Stroke', 'Stroke'],
                         title='Stroke Distribution',
@@ -65,7 +65,7 @@ with col1:
         
 with col2:
     # Heart Disease and Stroke
-    fig_heart = px.bar(data.groupby(['heart_disease', 'stroke']).size().reset_index(name='count'),
+    fig_heart = px.bar(df.groupby(['heart_disease', 'stroke']).size().reset_index(name='count'),
                         x='heart_disease', y='count', color='stroke',
                         title='Heart Disease and Stroke',
                         labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
@@ -75,7 +75,7 @@ with col2:
 with tab3:
     # Correlation matrix for numerical features
     numerical_cols = ['age', 'hypertension', 'heart_disease', 'avg_glucose_level', 'bmi', 'stroke']
-    corr_matrix = data[numerical_cols].corr()
+    corr_matrix = df[numerical_cols].corr()
         
     fig_corr = px.imshow(corr_matrix, text_auto=True, aspect="auto",
                            title='Correlation Matrix of Risk Factors',
