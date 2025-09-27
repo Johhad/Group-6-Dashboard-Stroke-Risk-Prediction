@@ -17,7 +17,9 @@ st.write("# Welcome to Stroke prediction Dashboard ")
 
 about_page = st.Page(page= "pages/About.py",title= "About", icon= ":material/info:",default=True,)
 project_1_page = st.Page(page= "pages/Descriptive_Analytics.py", title ="Descriptive Analytics", icon = "📊")
-project_2_page = st.Page(page= "pages/Predictive_Analytics.py", title= "Predictive Analytics", icon = "📈")
+project_2_page = st.Page(page= "pages/Diagnostic_Analytics.py", title ="Diagnostic Analytics", icon = "🩺")
+project_3_page = st.Page(page= "pages/Predictive_Analytics.py", title= "Predictive Analytics", icon = "📈")
+project_4_page = st.Page(page= "pages/What-If/Preventive_Analytics.py", title= "What-If/Preventive Analytics", icon = "🛡️")
 
 #--Navigation setup [sections]--
 pg = st.navigation(
