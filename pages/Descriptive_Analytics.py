@@ -55,7 +55,7 @@ with tab2:
         
 with col1:
     # Stroke distribution
-    stroke_counts = df['Ever had a Stroke?'].value_counts()
+    stroke_counts = df['Stroke'].value_counts()
     fig_stroke = px.pie(values=stroke_counts.values, 
                         names=['No Stroke', 'Stroke'],
                         title='Stroke Distribution',
@@ -65,7 +65,7 @@ with col1:
         
 with col2:
     # Heart Disease and Stroke
-    fig_heart = px.bar(df.groupby(['Heart disease', 'Ever had a Stroke?']).size().reset_index(name='count'),
+    fig_heart = px.bar(df.groupby(['Heart disease', 'Stroke']).size().reset_index(name='count'),
                         x='heart_disease', y='count', color='stroke',
                         title='Heart Disease and Stroke',
                         labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
@@ -74,7 +74,7 @@ with col2:
     
 with tab3:
     # Correlation matrix for numerical features
-    numerical_cols = ['Age', 'Hypertension', 'Heart disease', 'Avg Glucose Level', 'BMI', 'Ever had a stroke?']
+    numerical_cols = ['Age', 'Hypertension', 'Heart disease', 'Glucose', 'BMI', 'Stroke']
     corr_matrix = df[numerical_cols].corr()
         
     fig_corr = px.imshow(corr_matrix, text_auto=True, aspect="auto",
