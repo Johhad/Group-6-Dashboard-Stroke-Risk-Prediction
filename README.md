@@ -220,7 +220,7 @@ This logic resembles the expected pipeline, where the jupyter notebooks are used
 - Pamela Castillo: pamela.abigail.castillo.gonzalez@ki.stud.se 
 - Htet Wai Aung: htau6812@student.su.se 
 - Pardon Runesu (pardonm6@gmail.com) 
-- Chantale NzeggeMvele
+- Chantale NzeggeMvele (nzeggechantal@gmail.com)
 
 
 
