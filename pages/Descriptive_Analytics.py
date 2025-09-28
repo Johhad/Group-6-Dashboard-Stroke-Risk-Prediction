@@ -66,7 +66,7 @@ with tab2:
     with col2:
         # Heart Disease and Stroke
         fig_heart = px.bar(df.groupby(['Heart Disease', "Stroke"]).size().reset_index(name='count'),
-                            x='heart_disease', y='count', color='stroke',
+                            x='Heart Disease', y='count', color='stroke',
                             title='Heart Disease and Stroke',
                             labels={'Heart Disease': 'Heart Disease', 'count': 'Count'})
         fig_heart.update_layout(height=400)
