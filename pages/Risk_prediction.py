@@ -31,9 +31,9 @@ def _mode(col, fallback):
 default_age   = int(round(_median('Age', 50)))
 default_gluc  = round(_median('Glucose', 100.0), 1)
 default_bmi   = round(_median('BMI', 25.0), 1)
-default_hyp   = _mode('Hypertension', 0)      # 0/1 common
+default_hyp   = _mode('Hypertension', 1)      # 0/1 common
 default_hd    = _mode('Heart Disease', 0)     # 0/1
-default_mar   = _mode('Ever Married', 'No')   # 'Yes'/'No'
+default_mar   = _mode('Ever Married', 'Yes')   # 'Yes'/'No'
 default_work  = _mode('Work Type', 'Private')
 default_res   = _mode('Residence Type', 'Urban')
 default_smoke = _mode('Smoking Status', 'never smoked')
