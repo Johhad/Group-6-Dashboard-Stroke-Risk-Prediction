@@ -68,7 +68,7 @@ with tab2:
         fig_heart = px.bar(df.groupby(['Heart Disease', "Stroke"]).size().reset_index(name='count'),
                             x='Heart Disease', y='count', color="Stroke",
                             title='Heart Disease and Stroke',
-                            labels={'Heart Disease': 'Heart Disease', 'count': 'Count'})
+                            labels={'Heart Disease': 'Heart Disease', 'count': 'Stroke'})
         fig_heart.update_layout(height=400)
         st.plotly_chart(fig_heart, use_container_width=True)
     
