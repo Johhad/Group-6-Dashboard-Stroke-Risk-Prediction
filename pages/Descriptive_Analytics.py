@@ -65,16 +65,16 @@ with tab2:
         
     with col2:
         # Heart Disease and Stroke
-        fig_heart = px.bar(df.groupby(['Heart disease', 'Stroke']).size().reset_index(name='count'),
-                            x='heart_disease', y='count', color='stroke',
+        fig_heart = px.bar(df.groupby(['Heart Disease', "Stroke"]).size().reset_index(name='count'),
+                            x='Heart Disease', y='count', color="Stroke",
                             title='Heart Disease and Stroke',
-                            labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
+                            labels={'Heart Disease': 'Heart Disease', 'count': 'Stroke'})
         fig_heart.update_layout(height=400)
         st.plotly_chart(fig_heart, use_container_width=True)
     
 with tab3:
     # Correlation matrix for numerical features
-    numerical_cols = ['Age', 'Hypertension', 'Heart disease', 'Glucose', 'BMI', 'Stroke']
+    numerical_cols = ['Age', 'Hypertension', 'Heart Disease', 'Glucose', 'BMI', 'Stroke']
     corr_matrix = df[numerical_cols].corr()
         
     fig_corr = px.imshow(corr_matrix, text_auto=True, aspect="auto",
