@@ -206,13 +206,13 @@ To run the dashboard execute the following command:
 ```
 > streamlit run Dashboard.py
 # If the command above fails, use:
-> python -m streamlit run Dashboard.py
+> 
 ```
 
 
 ### Creating pre-trained models for the web dashboadr
 ⚠️ **NOTE**: In the predictive analytics tab, the web dashboard is looking for a pre-trained model in the folder assets/. The first time that you execute the application, it will show an error saying that such file does not exist. Therefore, you need to execute the notebook inside the folder jupyter-notebook/ to create the pre-trained model.
-
+python -m streamlit run Dashboard.py
 This logic resembles the expected pipeline, where the jupyter notebooks are used to iterate the data modeling part until a satisfactory trained model is created, and the streamlit scripts are only in charge of rendering the user-facing interface to generate the prediction for new data. In practice, the data science pipeline is completely independent from the web dashboard, and both are connected via the pre-trained model.
 
 ## Contributors

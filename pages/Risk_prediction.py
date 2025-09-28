@@ -50,7 +50,7 @@ def _yesno_from01(val01):
 # Form
 # -----------------------------
 with st.form("my_form"):
-    st.markdown("### Enter Patient Features")
+    st.markdown("### Enter Patient Data")
 
     c1, c2 = st.columns(2)
     with c1:
