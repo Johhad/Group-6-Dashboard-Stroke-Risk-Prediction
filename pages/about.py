@@ -2,6 +2,8 @@ import streamlit as st
 
 from forms.contact import contact_form
 
+st.write("# Welcome to Stroke prediction Dashboard ")
+
 #---define forms for contact---
 @st.dialog("Contact Us")
 def show_contact_form():
