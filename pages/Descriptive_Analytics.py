@@ -65,7 +65,7 @@ with tab2:
         
     with col2:
         # Heart Disease and Stroke
-        fig_heart = px.bar(df.groupby(['Heart disease', 'Stroke']).size().reset_index(name='count'),
+        fig_heart = px.bar(df.groupby(["Heart disease", "Stroke"]).size().reset_index(name='count'),
                             x='heart_disease', y='count', color='stroke',
                             title='Heart Disease and Stroke',
                             labels={'heart_disease': 'Heart Disease', 'count': 'Count'})
@@ -74,7 +74,7 @@ with tab2:
     
 with tab3:
     # Correlation matrix for numerical features
-    numerical_cols = ['Age', 'Hypertension', 'Heart disease', 'Glucose', 'BMI', 'Stroke']
+    numerical_cols = ['Age', 'Hypertension', "Heart disease", 'Glucose', 'BMI', 'Stroke']
     corr_matrix = df[numerical_cols].corr()
         
     fig_corr = px.imshow(corr_matrix, text_auto=True, aspect="auto",
