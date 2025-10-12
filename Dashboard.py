@@ -7,7 +7,6 @@ st.set_page_config(
 
 # Sidebar configuration
 st.sidebar.image("./assets/logo_NeuroInsight.png",)
-st.sidebar.success("Select a tab above.")
 
 # Page configuration
 st.set_page_config(
@@ -19,7 +18,7 @@ st.set_page_config(
 
 # Page configuration
 st.set_page_config(
-    page_title="NeuroPredict Dashboard",
+    page_title="NeuroInsight Dashboard",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
