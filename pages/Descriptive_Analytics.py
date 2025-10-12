@@ -40,7 +40,7 @@ col1, col2 = st.columns(2)
 with col1:
     with st.container():
         # Top description row
-        st.markdown("**About this chart** — The histogram shows how patient ages are distributed across the dataset (bin size ≈ equal-width).")
+        st.markdown("**Age Distribution** — The histogram shows how patient ages are distributed across the dataset.")
 
         # Chart
         fig_age = px.histogram(df, x='Age', nbins=20, title='Age Distribution',
@@ -62,7 +62,7 @@ with col1:
 with col2:
     with st.container():
         # Top description row
-        st.markdown("**About this chart** — Pie chart summarizes sex composition of the cohort.")
+        st.markdown("**Gender Distribution** — Pie chart summarizes sex composition of the cohort.")
 
         # Chart
         gender_counts = df['Sex'].value_counts(dropna=False)
@@ -90,7 +90,7 @@ col1, col2 = st.columns(2)
 with col1:
     with st.container():
         # Top description row
-        st.markdown("**About this chart** — Proportion of patients with recorded stroke outcome (1 = stroke, 0 = no stroke).")
+        st.markdown("**Percentages of Stroke and No-stroke** — Proportion of patients with recorded stroke outcome (1 = stroke, 0 = no stroke).")
 
         # Chart
         stroke_counts = df['Stroke'].value_counts().sort_index()  # expect 0,1
@@ -104,13 +104,13 @@ with col1:
 
         # Bottom analysis row (auto)
         stroke_pct = (df['Stroke'] == 1).mean() * 100
-        st.markdown(f"**Quick read:** Stroke rate **{stroke_pct:.1f}%**; no-stroke **{100 - stroke_pct:.1f}%**.")
+        st.markdown(f"**Quick read:** Stroke rate **{stroke_pct:.1f}%**; no-stroke **{100 - stroke_pct:.1f}%**. The dataset that the dashboard trained has imbalance dataset with only 4.8% of stroke patients. This has certain implications on machine learning model training stages.")
 
 # ---- Heart disease vs stroke (with description + analysis) ----
 with col2:
     with st.container():
         # Top description row
-        st.markdown("**About this chart** — Counts of patients by **Heart Disease** status and **Stroke** outcome.")
+        st.markdown("**Heart Disease and Stroke** — Counts of patients by **Heart Disease** status and **Stroke** outcome.")
 
         # Chart
         grp = df.groupby(['Heart Disease', 'Stroke']).size().reset_index(name='count')
@@ -137,4 +137,4 @@ with col2:
                 f"**Quick read:** Stroke among **Heart Disease = Yes**: **{risk_hd:.1f}%**; **No**: **{risk_nohd:.1f}%** → **{rr_txt}** relative risk."
             )
         except Exception:
-            st.markdown("**Quick read:** Unable to compute stroke risk by heart disease (check data values).")
+            st.markdown("**Quick read:** The graph shows the status of stroke in patients with no heart diseases and heart diseases. In terms of the graph, the proportion is high in patients with heart diseases.")
