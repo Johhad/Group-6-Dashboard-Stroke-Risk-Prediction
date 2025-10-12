@@ -16,7 +16,6 @@ st.caption("This page predicts stroke risk using the trained SVM model based on 
 # -----------------------------
 @st.cache_data
 def load_data():
-    # Adjust path if needed
     df = pd.read_csv("./jupyter-notebooks/processed_data.csv")
     return df
 
@@ -44,6 +43,10 @@ work_type_opts = ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_wor
 res_type_opts  = ['Urban', 'Rural']
 smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
 
+# NEW: Sex options (Female is baseline when both dummies are 0)
+sex_opts = ['Female', 'Male', 'Other']
+default_sex = 'Female'
+
 def _yesno_from01(val01):
     return 'Yes' if str(val01) == '1' else 'No'
 
@@ -52,17 +55,17 @@ def _yesno_from01(val01):
 # -----------------------------
 @st.cache_resource
 def load_model_and_meta():
-    model_path = Path("../assets/trained_model_final.pickle")
-    thr_path   = Path("../assets/decision_threshold.json")
+    model_path = Path("assets/trained_model_final.pickle")
+    thr_path   = Path("assets/decision_threshold.json")
 
     if not model_path.exists():
-        st.error(f"Trained model not found at: {model_path.resolve()}")
+        st.error(f"Model file not found at: {model_path.resolve()}")
         return None, 0.5, []
 
     with open(model_path, "rb") as f:
         model = pickle.load(f)
 
-    # try to read decision threshold; fallback to 0.5
+    # Load threshold if exists, else default 0.5
     thr = 0.5
     if thr_path.exists():
         try:
@@ -71,12 +74,12 @@ def load_model_and_meta():
         except Exception:
             pass
 
-    # get the expected feature names from the ColumnTransformer used during training
     try:
         expected_cols = list(model.named_steps["prep"].transformers_[0][2])
     except Exception:
         expected_cols = []
 
+    st.success(f"Model loaded from {model_path.name}")
     return model, thr, expected_cols
 
 model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
@@ -100,6 +103,8 @@ with st.form("patient_form"):
             "Heart Disease", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
+        # NEW: Sex input
+        sex = st.selectbox("Sex", sex_opts, index=sex_opts.index(default_sex))
     with c2:
         work_type = st.selectbox(
             "Work Type", work_type_opts,
@@ -119,25 +124,28 @@ with st.form("patient_form"):
     submitted = st.form_submit_button("Predict")
 
 # -----------------------------
-# Helpers to map form -> model input
+# Helper: map form -> model input
 # -----------------------------
 def build_model_input(expected_cols,
-                      age, hypertension_disp, heart_disease_disp, married,
+                      age, hypertension_disp, heart_disease_disp, sex,
                       work_type, residence_type, glucose, bmi, smoking):
     """
-    Build a single-row DataFrame with columns exactly matching the model training columns.
-    Any missing one-hot cols default to 0.0.
+    Build a single-row DataFrame matching the model training columns.
+    Unknown one-hot columns default to 0.0 (Female is baseline for Sex).
     """
     row = {col: 0.0 for col in expected_cols}
 
-    # numeric
+    # numeric/binary
     if "Age" in row:           row["Age"] = float(age)
     if "Hypertension" in row:  row["Hypertension"] = 1.0 if hypertension_disp == "Yes" else 0.0
     if "Heart Disease" in row: row["Heart Disease"] = 1.0 if heart_disease_disp == "Yes" else 0.0
     if "Glucose" in row:       row["Glucose"] = float(glucose)
     if "BMI" in row:           row["BMI"] = float(bmi)
 
-    # one-hot (names must match your training set)
+    # Sex dummies (Female = both 0)
+    if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male"  else 0.0
+    if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
+
     # Work Type
     if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
     if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
@@ -155,17 +163,12 @@ def build_model_input(expected_cols,
     if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
     if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
 
-    # Sex (if present): default Female baseline unless you add a control to the UI
-    if "Sex_Male" in row:                  row["Sex_Male"]  = 0.0
-    if "Sex_Other" in row:                 row["Sex_Other"] = 0.0
-
     return pd.DataFrame([row], columns=expected_cols)
 
 # -----------------------------
 # Gauge helpers
 # -----------------------------
 def band_and_color(score: float, thr_pct: float = 50.0):
-    # score is 0–100; call "High" if above threshold percentile
     if score < min(33.0, thr_pct * 0.66):
         return "Low", "#2ca02c"
     elif score < max(66.0, thr_pct):
@@ -174,7 +177,6 @@ def band_and_color(score: float, thr_pct: float = 50.0):
 
 def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: float = 0.5):
     band, color = band_and_color(score, thr_pct=decision_thr * 100)
-
     st.markdown(
         f"""
         <div style="display:flex; align-items:center; gap:12px; margin: 6px 0 8px 0;">
@@ -188,7 +190,6 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
         """,
         unsafe_allow_html=True
     )
-
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
@@ -225,13 +226,13 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
 # Predict on submit
 # -----------------------------
 if submitted:
-    # 1) build model-ready row
+    # 1) build model-ready row (now includes sex)
     X_user = build_model_input(
         EXPECTED_COLS,
         age=age,
         hypertension_disp=hypertension_disp,
         heart_disease_disp=heart_disease_disp,
-        married=married,
+        sex=sex,  # NEW
         work_type=work_type,
         residence_type=residence_type,
         glucose=glucose,
@@ -258,6 +259,7 @@ if submitted:
     # 5) stash inputs/outputs for other pages
     st.session_state['rp_input'] = {
         'Age': age,
+        'Sex': sex,  # NEW
         'Hypertension': 1 if hypertension_disp == 'Yes' else 0,
         'Heart Disease': 1 if heart_disease_disp == 'Yes' else 0,
         'Work Type': work_type,
@@ -269,7 +271,6 @@ if submitted:
         'predicted': pred
     }
 
-    # 6) small note
     st.info("Prediction generated by the trained SVM (MinMax-scaled, class-weighted). "
             "The gauge reflects the predicted probability (0–100).")
 else:
