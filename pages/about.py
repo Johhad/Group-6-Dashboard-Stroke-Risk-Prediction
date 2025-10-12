@@ -33,18 +33,18 @@ st.markdown("""
 # About Page
 
 st.markdown(
-    '<div class="page-header-box"><div class="page-header-text">About NeuroPredict</div></div>',
+    '<div class="page-header-box"><div class="page-header-text">About NeuroInsight</div></div>',
     unsafe_allow_html=True
 )
     
 col1, col2 = st.columns([2, 1])
     
 with col1:
-        st.image("./assets/SU_Logo.png", width=500)
+        st.image("./assets/logo_NeuroInsight.png", width=500)
         st.markdown("""
         ### Project Overview
         
-        NeuroPredict is an advanced stroke risk prediction dashboard developed to assist 
+        NeuroInsight is an advanced stroke risk prediction dashboard developed to assist 
         healthcare professionals and individuals in assessing and understanding stroke risk factors.
         
         ### Technology Stack
@@ -82,13 +82,13 @@ with col2:
         - UX/UI Designers
         
         ### Contact
-        - 📧 Email: info@neuropredict.com
-        - 🌐 Website: www.neuropredict.com
+        - 📧 Email: info@neuroinsight.com
+        - 🌐 Website: www.neuroinsight.com
         - 📞 Phone: +1-800-555-1234
         
         ### Version
-        **Current Version:** 1.0.0
-        **Last Updated:** 2024
+        **Current Version:** 1.0.1
+        **Last Updated:** 2025
         
         ### Disclaimer
         This tool is for educational and screening purposes only. It should not replace 
@@ -110,6 +110,6 @@ st.info("""
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #888;'>
-    © 2024 NeuroPredict - Group 6 Dashboard | Stroke Risk Prediction System
+    © 2025 NeuroInsight - Group 6 Dashboard | Stroke Risk Prediction System
 </div>
 """, unsafe_allow_html=True)
