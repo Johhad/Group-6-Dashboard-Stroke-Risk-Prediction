@@ -1,25 +1,27 @@
+# risk_prediction.py  (Streamlit page)
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
+import pickle, json
+from pathlib import Path
+
+st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
 
 st.title("Risk Prediction 🧑‍⚕️")
-st.caption("This page shows risk predication of stroke based on input features of the patient in the form")
+st.caption("This page predicts stroke risk using the trained SVM model based on the input features below.")
 
 # -----------------------------
-# Data loader
+# Data loader (for sensible UI defaults)
 # -----------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv('./jupyter-notebooks/processed_data.csv')
+    # Adjust path if needed
+    df = pd.read_csv("./jupyter-notebooks/processed_data.csv")
     return df
 
 df = load_data()
 
-# -----------------------------
-# Defaults from data
-# -----------------------------
 def _median(col, fallback):
     return float(df[col].median()) if col in df.columns and pd.api.types.is_numeric_dtype(df[col]) else fallback
 
@@ -33,7 +35,6 @@ default_gluc  = round(_median('Glucose', 100.0), 1)
 default_bmi   = round(_median('BMI', 25.0), 1)
 default_hyp   = _mode('Hypertension', 1)      # 0/1 common
 default_hd    = _mode('Heart Disease', 0)     # 0/1
-default_mar   = _mode('Ever Married', 'Yes')   # 'Yes'/'No'
 default_work  = _mode('Work Type', 'Private')
 default_res   = _mode('Residence Type', 'Urban')
 default_smoke = _mode('Smoking Status', 'never smoked')
@@ -47,86 +48,133 @@ def _yesno_from01(val01):
     return 'Yes' if str(val01) == '1' else 'No'
 
 # -----------------------------
+# Load trained model + threshold
+# -----------------------------
+@st.cache_resource
+def load_model_and_meta():
+    model_path = Path("../assets/svm_linear_balanced.pickle")
+    thr_path   = Path("../assets/decision_threshold.json")
+
+    if not model_path.exists():
+        st.error(f"Trained model not found at: {model_path.resolve()}")
+        return None, 0.5, []
+
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+
+    # try to read decision threshold; fallback to 0.5
+    thr = 0.5
+    if thr_path.exists():
+        try:
+            with open(thr_path) as f:
+                thr = float(json.load(f)["threshold"])
+        except Exception:
+            pass
+
+    # get the expected feature names from the ColumnTransformer used during training
+    try:
+        expected_cols = list(model.named_steps["prep"].transformers_[0][2])
+    except Exception:
+        expected_cols = []
+
+    return model, thr, expected_cols
+
+model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
+if model is None:
+    st.stop()
+
+# -----------------------------
 # Form
 # -----------------------------
-with st.form("my_form"):
+with st.form("patient_form"):
     st.markdown("### Enter Patient Data")
 
     c1, c2 = st.columns(2)
     with c1:
         age = st.number_input("Age", min_value=1, max_value=120, value=default_age, step=1)
-        hypertension_disp = st.radio("Hypertension", yes_no_display, horizontal=True,
-                                     index=yes_no_display.index(_yesno_from01(default_hyp)))
-        heart_disease_disp = st.radio("Heart Disease", yes_no_display, horizontal=True,
-                                      index=yes_no_display.index(_yesno_from01(default_hd)))
-        married = st.radio("Married", yes_no_display, horizontal=True,
-                           index=yes_no_display.index(default_mar if default_mar in yes_no_display else 'No'))
+        hypertension_disp = st.radio(
+            "Hypertension", yes_no_display, horizontal=True,
+            index=yes_no_display.index(_yesno_from01(default_hyp))
+        )
+        heart_disease_disp = st.radio(
+            "Heart Disease", yes_no_display, horizontal=True,
+            index=yes_no_display.index(_yesno_from01(default_hd))
+        )
     with c2:
-        work_type = st.selectbox("Work Type", work_type_opts,
-                                 index=work_type_opts.index(default_work) if default_work in work_type_opts else 0)
-        residence_type = st.selectbox("Residence Type", res_type_opts,
-                                      index=res_type_opts.index(default_res) if default_res in res_type_opts else 0)
+        work_type = st.selectbox(
+            "Work Type", work_type_opts,
+            index=work_type_opts.index(default_work) if default_work in work_type_opts else 0
+        )
+        residence_type = st.selectbox(
+            "Residence Type", res_type_opts,
+            index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
+        )
         glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
         bmi = st.number_input("BMI", min_value=0.0, value=default_bmi, step=0.1)
-        smoking = st.selectbox("Smoking?", smoke_opts,
-                               index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1)
+        smoking = st.selectbox(
+            "Smoking?", smoke_opts,
+            index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
+        )
 
-    submitted = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Predict")
 
 # -----------------------------
-# Heuristic risk score + viz
+# Helpers to map form -> model input
 # -----------------------------
-def compute_heuristic_score(a, hyp, hd, mar, work, res, glu, b, smoke):
+def build_model_input(expected_cols,
+                      age, hypertension_disp, heart_disease_disp, married,
+                      work_type, residence_type, glucose, bmi, smoking):
     """
-    Returns (score: 0-100, contributions: dict).
-    Transparent placeholder logic you can replace with your model later.
+    Build a single-row DataFrame with columns exactly matching the model training columns.
+    Any missing one-hot cols default to 0.0.
     """
-    contrib = {}
+    row = {col: 0.0 for col in expected_cols}
 
-    # Base
-    contrib['Base'] = 5.0
+    # numeric
+    if "Age" in row:           row["Age"] = float(age)
+    if "Hypertension" in row:  row["Hypertension"] = 1.0 if hypertension_disp == "Yes" else 0.0
+    if "Heart Disease" in row: row["Heart Disease"] = 1.0 if heart_disease_disp == "Yes" else 0.0
+    if "Glucose" in row:       row["Glucose"] = float(glucose)
+    if "BMI" in row:           row["BMI"] = float(bmi)
 
-    # Age (0–25 pts): starts contributing >40 years
-    contrib['Age'] = np.clip((a - 40) / 40, 0, 1) * 25
+    # one-hot (names must match your training set)
+    # Work Type
+    if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
+    if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
+    if "Work Type_children" in row:        row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
+    if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
+    if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
 
-    # Hypertension (0 or +20)
-    contrib['Hypertension'] = 20.0 if hyp == 'Yes' else 0.0
+    # Residence
+    if "Residence Type_Urban" in row:      row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
+    if "Residence Type_Rural" in row:      row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
 
-    # Heart disease (0 or +25)
-    contrib['Heart Disease'] = 25.0 if hd == 'Yes' else 0.0
+    # Smoking
+    if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
+    if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
+    if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
+    if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
 
-    # Glucose (0–15): starts > 7 mmol/L (adjust if your data uses mg/dL)
-    glu_threshold = 7.0
-    contrib['Glucose'] = np.clip((glu - glu_threshold) / glu_threshold, 0, 1) * 15
+    # Sex (if present): default Female baseline unless you add a control to the UI
+    if "Sex_Male" in row:                  row["Sex_Male"]  = 0.0
+    if "Sex_Other" in row:                 row["Sex_Other"] = 0.0
 
-    # BMI (0–10): starts > 25
-    contrib['BMI'] = np.clip((b - 25) / 10, 0, 1) * 10
+    return pd.DataFrame([row], columns=expected_cols)
 
-    # Smoking (+10 current, +5 former)
-    contrib['Smoking'] = 10.0 if smoke == 'smokes' else (5.0 if smoke == 'formerly smoked' else 0.0)
-
-    # Married (protective -3 if Yes)
-    contrib['Married'] = -3.0 if mar == 'Yes' else 0.0
-
-    # Residence/work: small placeholder signals
-    contrib['Residence Type'] = 1.0 if res == 'Urban' else 0.0
-    contrib['Work Type'] = 1.0 if work in ['Private', 'Self-employed', 'Govt_job'] else 0.0
-
-    score = float(np.clip(sum(contrib.values()), 0, 100))
-    return score, contrib
-
-# ---------- Gauge rendering (nice look) ----------
-def band_and_color(score: float):
-    if score < 33:
+# -----------------------------
+# Gauge helpers
+# -----------------------------
+def band_and_color(score: float, thr_pct: float = 50.0):
+    # score is 0–100; call "High" if above threshold percentile
+    if score < min(33.0, thr_pct * 0.66):
         return "Low", "#2ca02c"
-    elif score < 66:
+    elif score < max(66.0, thr_pct):
         return "Moderate", "#ff7f0e"
     return "High", "#d62728"
 
-def render_risk_gauge(score: float, title="Estimated Risk Score"):
-    band, color = band_and_color(score)
+def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: float = 0.5):
+    band, color = band_and_color(score, thr_pct=decision_thr * 100)
 
-    # Title + badge
     st.markdown(
         f"""
         <div style="display:flex; align-items:center; gap:12px; margin: 6px 0 8px 0;">
@@ -141,7 +189,6 @@ def render_risk_gauge(score: float, title="Estimated Risk Score"):
         unsafe_allow_html=True
     )
 
-    # Semi-circular gauge
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
@@ -160,7 +207,6 @@ def render_risk_gauge(score: float, title="Estimated Risk Score"):
         },
         title={'text': ""}
     ))
-
     fig.update_layout(
         margin=dict(t=10, b=0, l=10, r=10),
         height=320,
@@ -168,50 +214,63 @@ def render_risk_gauge(score: float, title="Estimated Risk Score"):
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(size=14)
     )
-
     fig.add_annotation(
-        text="Estimated Risk Score",
-        x=0.5, y=0.9, showarrow=False,
+        text=f"Decision threshold ≈ {decision_thr:.3f}",
+        x=0.5, y=0.90, showarrow=False,
         font=dict(size=14, color="#666")
     )
-
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------
-# On submit
+# Predict on submit
 # -----------------------------
 if submitted:
-    # compute score
-    score, contributions = compute_heuristic_score(
-        a=age,
-        hyp=hypertension_disp,
-        hd=heart_disease_disp,
-        mar=married,
-        work=work_type,
-        res=residence_type,
-        glu=glucose,
-        b=bmi,
-        smoke=smoking
+    # 1) build model-ready row
+    X_user = build_model_input(
+        EXPECTED_COLS,
+        age=age,
+        hypertension_disp=hypertension_disp,
+        heart_disease_disp=heart_disease_disp,
+        married=married,
+        work_type=work_type,
+        residence_type=residence_type,
+        glucose=glucose,
+        bmi=bmi,
+        smoking=smoking
     )
 
-    # save inputs for Preventive page
+    # 2) predict probability and class (using saved threshold)
+    try:
+        prob = float(model.predict_proba(X_user)[0][1])
+    except Exception as e:
+        st.error(f"Prediction failed: {e}")
+        st.stop()
+
+    pred = int(prob >= DECISION_THR)
+
+    # 3) render gauge (prob * 100)
+    render_risk_gauge(prob * 100.0, title="Model-Estimated Stroke Risk", decision_thr=DECISION_THR)
+
+    # 4) show numeric outputs
+    st.markdown(f"**Predicted probability:** `{prob:.3f}`")
+    st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**No stroke risk (0)**'}")
+
+    # 5) stash inputs/outputs for other pages
     st.session_state['rp_input'] = {
         'Age': age,
         'Hypertension': 1 if hypertension_disp == 'Yes' else 0,
         'Heart Disease': 1 if heart_disease_disp == 'Yes' else 0,
-        'Ever Married': married,
         'Work Type': work_type,
         'Residence Type': residence_type,
         'Glucose': float(glucose),
         'BMI': float(bmi),
-        'Smoking Status': smoking
+        'Smoking Status': smoking,
+        'pred_proba': prob,
+        'predicted': pred
     }
 
-    # render gauge
-    render_risk_gauge(score)
-
-       # disclaimer
-    st.info(
-        "This score is a temporary heuristic for UX only. It is not a diagnosis and should not be used for clinical decisions. "
-        "When your ML model is ready, replace the scoring function so the gauge & contributions reflect the model’s output."
-    )
+    # 6) small note
+    st.info("Prediction generated by the trained SVM (MinMax-scaled, class-weighted). "
+            "The gauge reflects the predicted probability (0–100).")
+else:
+    st.info("Fill the form and click **Predict** to see the model-estimated risk.")
