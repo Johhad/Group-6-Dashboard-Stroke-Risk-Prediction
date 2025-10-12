@@ -90,22 +90,28 @@ with c3:
                 "extreme values may influence overall patterns.")
 
 # =====================================================================
-# Unsupervised Clustering (interactive)
+# Clustering by K=2 (aligned to Stroke), non-interactive
 # =====================================================================
-st.subheader("Clustering Analytics")
+st.subheader("Clustering Analytics (K=2)")
 st.markdown(
-    "All available features are used (numeric + one-hot encoded for categoricals). "
-    "Choose **K** to explore natural groupings; plot shows a 2D PCA projection."
+    "All available features (numeric + one-hot encoded categoricals) are clustered into **2 groups**. "
+    "Clusters are aligned to the Stroke label by majority class to aid interpretation."
 )
 
-# ---- load the same dataset you used above (adjust path if needed) ----
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score, confusion_matrix
+import plotly.express as px
+import plotly.graph_objects as go
+
 @st.cache_data
 def _load_processed_for_cluster():
     return pd.read_csv("./jupyter-notebooks/processed_data.csv")
 
 raw = _load_processed_for_cluster()
 
-# --- Prepare X (features) and y (optional Stroke for plot/summary) ---
+# --- Prepare X (features) and y (optional Stroke for alignment) ---
 stroke_col = "Stroke" if "Stroke" in raw.columns else None
 
 # use all columns except obvious non-feature columns
@@ -134,119 +140,95 @@ else:
     else:
         y_stroke = None
 
-    # --- UI: only K slider ---
-    k = st.slider("K (number of clusters)", min_value=2, max_value=12, value=4, step=1)
-
-    # --- Standardize, fit KMeans ---
+    # --- Standardize, fit KMeans with K=2 ---
     scaler = StandardScaler()
     X_std = scaler.fit_transform(X_all)
 
+    k = 2
     km = KMeans(n_clusters=k, n_init="auto", random_state=42)
-    labels = km.fit_predict(X_std)
+    raw_labels = km.fit_predict(X_std)
+
+    # --- Optionally align clusters to Stroke by majority ---
+    # Map the cluster with higher Stroke prevalence to "Stroke-like"
+    label_names = [f"Cluster {i}" for i in range(k)]
+    aligned_labels = raw_labels.copy()
+    legend_map = {0: "Cluster 0", 1: "Cluster 1"}
+    if y_stroke is not None:
+        rates = []
+        for cl in range(k):
+            mask = (raw_labels == cl)
+            rate = y_stroke[mask].mean() if mask.any() else 0.0
+            rates.append(rate)
+        # cluster with larger stroke rate becomes 1 (Stroke-like)
+        stroke_like = int(np.argmax(rates))
+        no_stroke_like = 1 - stroke_like
+        remap = {no_stroke_like: 0, stroke_like: 1}
+        aligned_labels = np.vectorize(remap.get)(raw_labels)
+        label_names = ["No-stroke–like", "Stroke–like"]
+        legend_map = {0: "No-stroke–like", 1: "Stroke–like"}
 
     # --- Silhouette score ---
-    sil = silhouette_score(X_std, labels) if len(X_std) > k else np.nan
+    sil = silhouette_score(X_std, raw_labels) if len(X_std) > k else np.nan
 
     # --- PCA (2D) for plotting ---
     pca = PCA(n_components=2, random_state=42)
     XY = pca.fit_transform(X_std)
     plot_df = pd.DataFrame(XY, columns=["PC1", "PC2"], index=X_all.index)
-    plot_df["Cluster"] = labels.astype(int).astype(str)
+    plot_df["Cluster"] = aligned_labels  # 0/1 after alignment if y available
 
-    # Optional: show Stroke as shape, but keep legend clean
-    stroke_label_col = None
+    # Optional: add Stroke labels for shape reference
     if y_stroke is not None:
-        stroke_label_col = "StrokeLabel"
-        plot_df[stroke_label_col] = y_stroke.map({0: "No Stroke", 1: "Stroke"}).astype(str)
-        # Make Stroke points bigger; others small
-        plot_df["PointSize"] = np.where(plot_df[stroke_label_col] == "Stroke", 14, 6)
-    else:
-        plot_df["PointSize"] = 4
+        plot_df["Stroke"] = y_stroke.map({0: "No Stroke", 1: "Stroke"})
 
-    # -------- Fixed color map: 0=blue, 1=red; others get fallbacks --------
-    base_map = {"0": "#1f77b4", "1": "#d62728"}  # blue, red
-    fallback = ["#2ca02c", "#9467bd", "#ff7f0e", "#8c564b",
-                "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
-    cluster_vals = sorted(plot_df["Cluster"].unique(), key=lambda x: int(x))
-    color_map = {}
-    fb_i = 0
-    for v in cluster_vals:
-        if v in base_map:
-            color_map[v] = base_map[v]
-        else:
-            color_map[v] = fallback[fb_i % len(fallback)]
-            fb_i += 1
+    # Colors fixed: 0=blue, 1=red
+    color_map = {0: "#1f77b4", 1: "#d62728"}
 
-    # --- Scatter (color=Cluster; symbol=Stroke; size only larger for Stroke) ---
+    # --- Scatter (color by aligned cluster; symbol by true Stroke if available) ---
     fig_scatter = px.scatter(
-        plot_df, x="PC1", y="PC2",
-        color="Cluster",
-        symbol=stroke_label_col if stroke_label_col else None,
-        size="PointSize",
-        size_max=14,
-        opacity=0.6,
-        title=f"PCA Projection (K={k}, all features)"
+        plot_df,
+        x="PC1", y="PC2",
+        color=plot_df["Cluster"].map(legend_map),
+        color_discrete_map={legend_map[i]: color_map[i] for i in [0,1]},
+        symbol="Stroke" if y_stroke is not None else None,
+        opacity=0.65,
+        title="PCA Projection (K=2, clusters aligned to Stroke)"
     )
     fig_scatter.update_layout(height=420, margin=dict(t=50, b=10, l=10, r=10), legend_title_text="Cluster")
-
-    # Collapse legend to one entry per cluster
-    seen = set()
-    for tr in fig_scatter.data:
-        name = tr.name.split(",")[0] if "," in tr.name else tr.name
-        val = name.split("=")[-1].strip()
-        tr.name = f"Cluster {val}"
-        tr.legendgroup = f"cluster_{val}"
-        tr.showlegend = val not in seen
-        seen.add(val)
-
-    # Separate mini legend for Stroke shapes
-    if stroke_label_col:
-        fig_scatter.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers", name="Stroke",
-            marker=dict(symbol="diamond", size=10, color="#666"),
-            showlegend=True, legendgroup="stroke"
-        ))
-        fig_scatter.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers", name="No Stroke",
-            marker=dict(symbol="circle", size=10, color="#666"),
-            showlegend=True, legendgroup="stroke"
-        ))
-
     st.plotly_chart(fig_scatter, use_container_width=True)
 
     # --- KPI row ---
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Features used", f"{X_all.shape[1]}")
     m2.metric("Rows used", f"{X_all.shape[0]}")
-    m3.metric("K (clusters)", f"{k}")
+    m3.metric("K (clusters)", "2")
     m4.metric("Silhouette score", f"{sil:.3f}" if np.isfinite(sil) else "—")
+
+    # --- If Stroke is available: show confusion-style summary ---
+    if y_stroke is not None:
+        # Build confusion between aligned clusters (0/1) and true Stroke (0/1)
+        cm = confusion_matrix(y_stroke.values, aligned_labels, labels=[0,1])
+        cm_df = pd.DataFrame(
+            cm,
+            index=["True: No Stroke", "True: Stroke"],
+            columns=[f"Pred: {legend_map[0]}", f"Pred: {legend_map[1]}"]
+        )
+        st.markdown("**Alignment to Stroke (counts)**")
+        st.dataframe(cm_df, use_container_width=True)
 
     # --- Cluster profiles (means of original feature space) ---
     prof_df = (
-        pd.concat([pd.DataFrame(X_all.reset_index(drop=True)), pd.Series(labels, name="Cluster")], axis=1)
+        pd.concat([pd.DataFrame(X_all.reset_index(drop=True)),
+                   pd.Series(aligned_labels, name="Cluster")], axis=1)
         .groupby("Cluster")
         .mean()
         .reset_index()
     )
-
-    # Add stroke rate per cluster if available
+    # Add stroke rate per aligned cluster if available
     if y_stroke is not None:
-        sr = pd.DataFrame({"Cluster": labels, "Stroke": y_stroke.reset_index(drop=True)})
+        sr = pd.DataFrame({"Cluster": aligned_labels, "Stroke": y_stroke.reset_index(drop=True)})
         stroke_rate = sr.groupby("Cluster")["Stroke"].mean().mul(100).rename("Stroke Rate (%)").reset_index()
         prof_df = prof_df.merge(stroke_rate, on="Cluster", how="left")
+        prof_df["Cluster"] = prof_df["Cluster"].map(legend_map)
 
     st.markdown("**Cluster Profiles** (feature means; Stroke Rate if available). Scroll horizontally for wide tables.")
     st.dataframe(prof_df.round(2), use_container_width=True)
-
-    # Optional elbow curve (hidden by default)
-    with st.expander("Show elbow curve (SSE)"):
-        Ks = list(range(2, min(13, max(3, X_all.shape[0]-1))))
-        sse = []
-        for kk in Ks:
-            km_kk = KMeans(n_clusters=kk, n_init="auto", random_state=42).fit(X_std)
-            sse.append(km_kk.inertia_)
-        fig_elbow = px.line(x=Ks, y=sse, markers=True,
-                            labels={"x": "K", "y": "SSE (inertia)"},
-                            title="Elbow Curve")
-        fig_elbow.update_layout(height=300, margin=dict(t=40, b=0, l=10, r=10))
-        st.plotly_chart(fig_elbow, use_container_width=True)
