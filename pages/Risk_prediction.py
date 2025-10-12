@@ -52,7 +52,7 @@ def _yesno_from01(val01):
 # -----------------------------
 @st.cache_resource
 def load_model_and_meta():
-    model_path = Path("../assets/svm_linear_balanced.pickle")
+    model_path = Path("../assets/trained_model_final.pickle")
     thr_path   = Path("../assets/decision_threshold.json")
 
     if not model_path.exists():
