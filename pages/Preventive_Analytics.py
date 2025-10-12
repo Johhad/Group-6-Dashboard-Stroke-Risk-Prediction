@@ -1,86 +1,76 @@
-# preventive.py  (Streamlit page)
+# pages/preventive.py
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import pickle, json, warnings
 from pathlib import Path
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Preventive Insights", page_icon="🛡️", layout="wide")
 st.title("Preventive Insights 🛡️")
 st.caption("Patient-specific explanation using SHAP (impact on predicted stroke probability).")
 
-# -------------------------------------------------------------------
-# 0) Require a prior submission from the Risk page
-# -------------------------------------------------------------------
+# ------------------ require prior submission ------------------
 if "rp_input" not in st.session_state:
     st.warning("No patient input found. Please submit data on the **Risk Prediction** page first.")
     st.stop()
+pt = st.session_state["rp_input"]
 
-patient = st.session_state["rp_input"]
-
-# -------------------------------------------------------------------
-# 1) Load model + expected columns
-# -------------------------------------------------------------------
+# ------------------ load model + columns + threshold ------------------
 @st.cache_resource
 def load_model_and_meta():
     model_path = Path("assets/trained_model_final.pickle")
+    thr_path   = Path("assets/decision_threshold.json")
     if not model_path.exists():
         st.error(f"Trained model not found at: {model_path.resolve()}")
-        return None, []
-
+        return None, 0.5, []
     with open(model_path, "rb") as f:
         model = pickle.load(f)
-
+    thr = 0.5
+    if thr_path.exists():
+        try:
+            with open(thr_path) as f:
+                thr = float(json.load(f)["threshold"])
+        except Exception:
+            pass
     try:
         expected_cols = list(model.named_steps["prep"].transformers_[0][2])
     except Exception:
         expected_cols = []
+    return model, thr, expected_cols
 
-    return model, expected_cols
-
-model, EXPECTED_COLS = load_model_and_meta()
+model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
 if model is None or not EXPECTED_COLS:
     st.stop()
 
-# -------------------------------------------------------------------
-# 2) Tiny background for SHAP (kept small for speed)
-# -------------------------------------------------------------------
+# ------------------ tiny background for SHAP ------------------
 @st.cache_data
 def load_background(n=60):
     df = pd.read_csv("./jupyter-notebooks/processed_data.csv")
     if len(df) > n:
         df = df.sample(n, random_state=42).reset_index(drop=True)
     return df
-
 bg_raw = load_background()
 
-# -------------------------------------------------------------------
-# 3) Helpers (match Risk page encoding exactly)
-# -------------------------------------------------------------------
+# ------------------ helpers (match Risk page encoding) ------------------
 def build_model_input(expected_cols,
                       age, sex, hypertension, heart_disease,
                       work_type, residence_type, glucose, bmi, smoking):
     row = {col: 0.0 for col in expected_cols}
-    # numeric/binary
     if "Age" in row:           row["Age"] = float(age)
     if "Hypertension" in row:  row["Hypertension"] = float(hypertension)
     if "Heart Disease" in row: row["Heart Disease"] = float(heart_disease)
     if "Glucose" in row:       row["Glucose"] = float(glucose)
     if "BMI" in row:           row["BMI"] = float(bmi)
-    # Sex (Female baseline)
     if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male" else 0.0
     if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
-    # Work Type
     if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
     if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
     if "Work Type_children" in row:        row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
     if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
     if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
-    # Residence
     if "Residence Type_Urban" in row:      row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
     if "Residence Type_Rural" in row:      row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
-    # Smoking
     if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
     if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
     if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
@@ -102,85 +92,124 @@ def build_bg_matrix(expected_cols, df_raw):
         recs.append(build_model_input(expected_cols, age, sex, hyp, hd, work, res, glu, bmi, smk))
     return pd.concat(recs, ignore_index=True)
 
-# -------------------------------------------------------------------
-# 4) Build patient row and background
-# -------------------------------------------------------------------
-sex_val = patient.get("Sex", "Female")
-X_patient = build_model_input(
+# ------------------ build patient row + risk ------------------
+sex_val = pt.get("Sex", "Female")
+X_pt = build_model_input(
     EXPECTED_COLS,
-    age=patient["Age"],
+    age=pt["Age"],
     sex=sex_val,
-    hypertension=int(patient.get("Hypertension", 0)),
-    heart_disease=int(patient.get("Heart Disease", 0)),
-    work_type=patient["Work Type"],
-    residence_type=patient["Residence Type"],
-    glucose=patient["Glucose"],
-    bmi=patient["BMI"],
-    smoking=patient["Smoking Status"],
+    hypertension=int(pt.get("Hypertension", 0)),
+    heart_disease=int(pt.get("Heart Disease", 0)),
+    work_type=pt["Work Type"],
+    residence_type=pt["Residence Type"],
+    glucose=pt["Glucose"],
+    bmi=pt["BMI"],
+    smoking=pt["Smoking Status"],
 )
-X_bg = build_bg_matrix(EXPECTED_COLS, bg_raw)
+risk_prob = float(model.predict_proba(X_pt)[0, 1])
+decision  = "Stroke risk (1)" if risk_prob >= DECISION_THR else "No stroke risk (0)"
 
-# -------------------------------------------------------------------
-# 5) SHAP (local only) – class=1 probability
-# -------------------------------------------------------------------
+# ------------------ TOP: patient summary metrics ------------------
+st.subheader("Patient summary & risk score")
+row1 = st.columns([1,1,1,1])
+row1[0].metric("Risk probability", f"{risk_prob:.3f}")
+row1[1].metric("Decision threshold", f"{DECISION_THR:.3f}")
+row1[2].metric("Decision", decision)
+row1[3].metric("Age", str(pt["Age"]))
+
+row2 = st.columns([1,1,1,1,1])
+row2[0].metric("Sex", sex_val)
+row2[1].metric("Hypertension", "Yes" if int(pt.get("Hypertension",0))==1 else "No")
+row2[2].metric("Heart Disease", "Yes" if int(pt.get("Heart Disease",0))==1 else "No")
+row2[3].metric("Glucose", f"{float(pt['Glucose']):.1f}")
+row2[4].metric("BMI", f"{float(pt['BMI']):.1f}")
+
+row3 = st.columns([1,1,1])
+row3[0].metric("Work Type", pt["Work Type"])
+row3[1].metric("Residence", pt["Residence Type"])
+row3[2].metric("Smoking", pt["Smoking Status"])
+
+st.markdown("---")
+
+# ------------------ Local SHAP (horizontal bars) ------------------
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-
 import shap
-f = lambda X: model.predict_proba(pd.DataFrame(X, columns=EXPECTED_COLS))[:, 1]
-bg = X_bg.sample(min(60, len(X_bg)), random_state=42).values  # tiny background for speed
-explainer = shap.KernelExplainer(f, bg)
 
-# nsamples controls speed/accuracy; keep modest
-phi = explainer.shap_values(X_patient.values, nsamples=200)
+X_bg = build_bg_matrix(EXPECTED_COLS, bg_raw)
+bg   = X_bg.sample(min(60, len(X_bg)), random_state=42).values
+
+f = lambda X: model.predict_proba(pd.DataFrame(X, columns=EXPECTED_COLS))[:, 1]
+explainer = shap.KernelExplainer(f, bg)
+phi = explainer.shap_values(X_pt.values, nsamples=200)
 shap_values = phi[1].ravel() if isinstance(phi, list) else np.array(phi).ravel()
 
-# Table sorted by SHAP value (highest -> lowest)
-local_df = pd.DataFrame({
-    "feature": EXPECTED_COLS,
-    "input_value": X_patient.iloc[0].values,
-    "shap_value": shap_values
-}).sort_values("shap_value", ascending=False)
+# ---- Top 8 + "Other features" (no baseline/prediction bars) ----
+TOP_K = 8
+order = np.argsort(-np.abs(shap_values))
+top_idx = order[:TOP_K]
+other_val = shap_values[order[TOP_K:]].sum() if len(order) > TOP_K else 0.0
 
-# -------------------------------------------------------------------
-# 6) Display (stacked vertically, full width)
-# -------------------------------------------------------------------
-st.subheader("Patient-specific SHAP explanation")
+labels = [EXPECTED_COLS[i] for i in top_idx]
+vals   = [shap_values[i] for i in top_idx]
+if abs(other_val) > 0:
+    labels.append("Other features")
+    vals.append(other_val)
 
-# A) Table (full width)
-st.markdown("**Per-feature impact (sorted by SHAP value)**")
-st.dataframe(
-    local_df.style.format({"input_value": "{:.3f}", "shap_value": "{:.5f}"}),
-    use_container_width=True,
-    height=480
-)
+# Reverse for horizontal bars (top at top)
+labels = labels[::-1]
+vals   = vals[::-1]
 
-# B) Bar chart (full width)
-top_k = st.slider("Show top N features in the chart", min_value=5, max_value=min(25, len(local_df)), value=12, step=1)
-top = local_df.head(top_k)
+# Colors by sign
+colors = ["#d62728" if v > 0 else "#2ca02c" for v in vals]  # red = ↑risk, green = ↓risk
 
-fig_local = px.bar(
-    top[::-1],  # reverse for horizontal order (largest at top)
-    x="shap_value", y="feature",
-    orientation="h",
-    color=np.where(top["shap_value"] > 0, "Pushes ↑ risk", "Pushes ↓ risk"),
-    color_discrete_map={"Pushes ↑ risk": "crimson", "Pushes ↓ risk": "steelblue"},
-    labels={"shap_value": "SHAP value (impact on P(stroke))", "feature": ""},
-    title="Per-feature impact for this patient"
-)
-fig_local.update_layout(
-    showlegend=True,
-    height=520,
-    margin=dict(t=50, l=10, r=10, b=10)
-)
-st.plotly_chart(fig_local, use_container_width=True)
+st.subheader("Top contributors (patient-specific)")
 
-with st.expander("How to read this"):
-    st.markdown(
-        """
-- We explain the model’s **predicted probability of stroke (class = 1)**.
-- **Positive SHAP** values push the probability **up** (toward stroke); **negative** push it **down**.
-- The table is sorted by SHAP value (largest positive at top).  
-  Use the slider to control how many features appear in the chart below.
-        """
+c1, c2 = st.columns([1,1])
+with c1:
+    fig = go.Figure()
+
+    # Format SHAP labels with signs (+/-)
+    text_labels = [f"{v:+.3f}" for v in vals]
+
+    fig.add_bar(
+        x=vals,
+        y=labels,
+        orientation="h",
+        marker_color=colors,                # red = ↑ risk, green = ↓ risk
+        text=text_labels,                   # show SHAP values
+        textposition="inside",              # ← place labels within bars
+        insidetextanchor="middle",
+        textfont=dict(size=12, color="white", family="Arial"),
+        hovertemplate="<b>%{y}</b><br>SHAP: %{x:.3f}<extra></extra>",
     )
+
+    fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="#666")
+
+    fig.update_layout(
+        height=420,
+        margin=dict(t=30, l=10, r=10, b=10),
+        xaxis_title="SHAP value (impact on P(stroke))",
+        yaxis_title="",
+        showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(zeroline=False, automargin=True),
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+with c2:
+    st.markdown(
+        f"""
+**How to read this**
+
+- Bars show how each feature **pushes the probability** up (red) or down (green).
+- Listed are the **top {TOP_K} features by absolute impact**, plus **“Other features”** (all remaining effects).
+- Positive bar means higher predicted risk; negative bar means lower risk.
+- Current patient’s predicted probability: **{risk_prob:.3f}**  
+  Decision (threshold {DECISION_THR:.3f}): **{decision}**.
+"""
+    )
+
+st.info("These SHAP values explain the model’s probability for this single patient only.")
