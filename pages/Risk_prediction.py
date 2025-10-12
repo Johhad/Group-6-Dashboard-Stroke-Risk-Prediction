@@ -254,7 +254,7 @@ if submitted:
 
     # 4) show numeric outputs
     st.markdown(f"**Predicted probability:** `{prob:.3f}`")
-    st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**No stroke risk (0)**'}")
+    st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**Low stroke risk (0)**'}")
 
     # 5) stash inputs/outputs for other pages
     st.session_state['rp_input'] = {
