@@ -215,7 +215,7 @@ python -m streamlit run Dashboard.py
 This logic resembles the expected pipeline, where the jupyter notebooks are used to iterate the data modeling part until a satisfactory trained model is created, and the streamlit scripts are only in charge of rendering the user-facing interface to generate the prediction for new data. In practice, the data science pipeline is completely independent from the web dashboard, and both are connected via the pre-trained model.
 
 ## Contributors
-- Johannes Haddad 
+- Johannes Haddad: johanneshad_95@hotmail.com
 - Pamela Castillo: pamela.abigail.castillo.gonzalez@ki.stud.se 
 - Htet Wai Aung: htau6812@student.su.se 
 - Pardon Runesu (pardonm6@gmail.com) 
