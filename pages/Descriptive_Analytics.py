@@ -171,7 +171,7 @@ with col3:
         grp_smoke['Stroke Rate (%)'] = grp_smoke['Stroke'] * 100
         fig_smoke = px.bar(
             grp_smoke,
-            x='Smoking Status',
+            x='Smoking?',
             y='Stroke Rate (%)',
             title='Stroke Rate by Smoking Status',
             labels={'Smoking Status': 'Smoking Status', 'Stroke Rate (%)': 'Stroke Rate (%)'},
