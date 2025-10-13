@@ -26,18 +26,6 @@ else:
 st.markdown("**Analysis:** Strong positive or negative correlations may indicate multicollinearity or "
             "potentially important relationships for predicting stroke.")
 
-# --- correlation matrix table ---
-st.subheader("Correlation Matrix")
-st.markdown("The full correlation matrix with numeric values for each feature pair is shown below. "
-            "This is useful for precise interpretation of variable associations.")
-cm_path = ART / "correlation_matrix.csv"
-if cm_path.exists():
-    st.dataframe(pd.read_csv(cm_path, index_col=0).round(2), use_container_width=True)
-else:
-    st.info("Run the notebook to create: artifacts/diagnostic/correlation_matrix.csv")
-st.markdown("**Analysis:** Correlation values closer to +1 or -1 suggest strong associations, "
-            "while values near 0 suggest little to no linear relationship.")
-
 # --- scatter matrix (prefer HTML; fallback to PNG if you exported it) ---
 st.subheader("Pair Plot (Age, Glucose, BMI)")
 st.markdown("This pair plot shows scatterplots for Age, Glucose, and BMI, allowing us to visually explore "
