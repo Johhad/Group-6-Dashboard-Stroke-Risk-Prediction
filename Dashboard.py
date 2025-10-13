@@ -53,10 +53,20 @@ st.markdown(
     /* Sidebar background color */
     [data-testid="stSidebar"] {
         background-color: #0e2a47;
+        color: #ffffff; /* set the text color to white */
     }
-    /* Optional: change sidebar text color for better contrast */
-    [data-testid="stSidebar"] > div {
-        color: #ffffff; /* white text for contrast */
+    /* Ensure all sidebar text elements are white */
+    [data-testid="stSidebar"] * {
+        color: #ffffff !important;
+    }
+    /* Optional: if sidebar contains header text, make sure it's white */
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] h4,
+    [data-testid="stSidebar"] h5,
+    [data-testid="stSidebar"] h6 {
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True
