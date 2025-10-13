@@ -50,16 +50,14 @@ pg.run()
 st.markdown(
     """
     <style>
-    /* Sidebar background color */
+    /* Sidebar background and text color for all pages */
     [data-testid="stSidebar"] {
         background-color: #0e2a47;
-        color: #ffffff; /* set the text color to white */
+        color: #ffffff;
     }
-    /* Ensure all sidebar text elements are white */
     [data-testid="stSidebar"] * {
         color: #ffffff !important;
     }
-    /* Optional: if sidebar contains header text, make sure it's white */
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3,
