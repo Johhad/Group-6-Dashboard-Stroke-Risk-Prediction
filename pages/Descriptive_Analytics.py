@@ -167,7 +167,7 @@ with col3:
         st.markdown("**Stroke Rate by Smoking Status** — Stroke rates for different smoking status categories.")
 
         # Chart
-        grp_smoke = df.groupby('Smoking Status')['Stroke'].mean().reset_index()
+        grp_smoke = df.groupby('Smoking?')['Stroke'].mean().reset_index()
         grp_smoke['Stroke Rate (%)'] = grp_smoke['Stroke'] * 100
         fig_smoke = px.bar(
             grp_smoke,
