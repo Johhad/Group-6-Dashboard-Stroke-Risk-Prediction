@@ -107,7 +107,7 @@ with col2:
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
-col5 = st.columns(1)
+col5, col6 = st.columns(2)
 
 # ---- Heart disease vs stroke (with description + analysis) ----
 with col1:
@@ -226,7 +226,7 @@ with col5[0]:
 
         # Chart
         grp_bmi = df.groupby('Hypertension')['BMI'].mean().reset_index()
-        fig_bmi = px.bar(
+        fig_bmi = px.box(
             grp_bmi,
             x='Hypertension',
             y='BMI',
