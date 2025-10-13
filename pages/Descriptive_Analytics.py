@@ -107,6 +107,7 @@ with col2:
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
+col5 = st.columns(1)
 
 # ---- Heart disease vs stroke (with description + analysis) ----
 with col1:
@@ -155,7 +156,7 @@ with col2:
             y='Stroke Rate (%)',
             title='Stroke Rate by Smoking Status',
             labels={'Smoking Status': 'Smoking Status', 'Stroke Rate (%)': 'Stroke Rate (%)'},
-            color_discrete_sequence=['#9467bd']
+            color_discrete_sequence=["#43a6df"]
         )
         fig_smoke.update_layout(height=400)
         st.plotly_chart(fig_smoke, use_container_width=True)
@@ -216,4 +217,30 @@ with col4:
         glucose_nostroke = grp_glucose[grp_glucose['Stroke'] == 0]['Glucose'].values[0]
         st.markdown(
             f"**Quick read:** Average glucose level for **Stroke** patients: **{glucose_stroke:.1f} mg/dL**; for **No Stroke**: **{glucose_nostroke:.1f} mg/dL**."
+        )
+#----Average BMI values vary between patients with hypertension and patients without hypertension
+with col5[0]:
+    with st.container():
+        # Top description row
+        st.markdown("**Average BMI by Hypertension Status** — Average BMI values for patients with and without hypertension.")
+
+        # Chart
+        grp_bmi = df.groupby('Hypertension')['BMI'].mean().reset_index()
+        fig_bmi = px.bar(
+            grp_bmi,
+            x='Hypertension',
+            y='BMI',
+            title='Average BMI by Hypertension Status',
+            labels={'Hypertension': 'Hypertension Status', 'BMI': 'Average BMI'},
+            color_discrete_sequence=["#22d9e6"]
+        )
+        fig_bmi.update_xaxes(ticktext=['No Hypertension', 'Hypertension'], tickvals=[0, 1])
+        fig_bmi.update_layout(height=400)
+        st.plotly_chart(fig_bmi, use_container_width=True)
+
+        # Bottom analysis row (auto)
+        bmi_hypert = grp_bmi[grp_bmi['Hypertension'] == 1]['BMI'].values[0]
+        bmi_nohypert = grp_bmi[grp_bmi['Hypertension'] == 0]['BMI'].values[0]
+        st.markdown(
+            f"**Quick read:** Average BMI for **Hypertension** patients: **{bmi_hypert:.1f}**; for **No Hypertension**: **{bmi_nohypert:.1f}**."
         )
