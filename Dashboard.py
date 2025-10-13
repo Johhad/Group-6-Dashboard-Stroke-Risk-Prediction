@@ -45,3 +45,19 @@ pg = st.navigation(
 )
 #---Run navigation---
 pg.run()
+
+#---Color of sidebar
+st.markdown(
+    """
+    <style>
+    /* Sidebar background color */
+    [data-testid="stSidebar"] {
+        background-color: #0e2a47;
+    }
+    /* Optional: change sidebar text color for better contrast */
+    [data-testid="stSidebar"] > div {
+        color: #ffffff; /* white text for contrast */
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
