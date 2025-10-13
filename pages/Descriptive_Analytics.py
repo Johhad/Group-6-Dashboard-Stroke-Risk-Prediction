@@ -227,20 +227,19 @@ with col5[0]:
         # Chart
         grp_bmi = df.groupby('Hypertension')['BMI'].mean().reset_index()
         fig_bmi = px.box(
-            grp_bmi,
+            df,
             x='Hypertension',
             y='BMI',
             title='Average BMI by Hypertension Status',
-            labels={'Hypertension': 'Hypertension Status', 'BMI': 'Average BMI'},
-            color_discrete_sequence=["#22d9e6"]
+            labels={'Hypertension': 'Hypertension Status', 'BMI': 'Body Mass Index (BMI)'},
+            color_discrete_sequence=["#22aee6"]
         )
         fig_bmi.update_xaxes(ticktext=['No Hypertension', 'Hypertension'], tickvals=[0, 1])
         fig_bmi.update_layout(height=400)
         st.plotly_chart(fig_bmi, use_container_width=True)
-
         # Bottom analysis row (auto)
-        bmi_hypert = grp_bmi[grp_bmi['Hypertension'] == 1]['BMI'].values[0]
-        bmi_nohypert = grp_bmi[grp_bmi['Hypertension'] == 0]['BMI'].values[0]
+        bmi_hypertension = grp_bmi[grp_bmi['Hypertension'] == 1]['BMI'].values[0]
+        bmi_nohypertension = grp_bmi[grp_bmi['Hypertension'] == 0]['BMI'].values[0]
         st.markdown(
-            f"**Quick read:** Average BMI for **Hypertension** patients: **{bmi_hypert:.1f}**; for **No Hypertension**: **{bmi_nohypert:.1f}**."
+            f"**Quick read:** Average BMI for **Hypertension** patients: **{bmi_hypertension:.1f}**; for **No Hypertension**: **{bmi_nohypertension:.1f}**."
         )
