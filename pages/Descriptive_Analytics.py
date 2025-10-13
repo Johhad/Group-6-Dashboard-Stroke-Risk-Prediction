@@ -35,6 +35,7 @@ col4.markdown(f"<div style='text-align:center; background-color:#f0f2f6; padding
 # -----------------------
 st.subheader("Demographics")
 col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
 # ---- Age distribution (with description + analysis) ----
 with col1:
@@ -79,6 +80,21 @@ with col2:
         st.markdown(
             f"**Quick read:** Female **{female_pct:.1f}%**, Male **{male_pct:.1f}%** of the sample."
         )
+
+#---#----Age distribution by stroke status----
+    with col3:
+        with st.container():
+            # Top description row
+            st.markdown("**Age Distribution by Stroke Status** — Overlaid histograms showing age distribution for patients with and without stroke.")
+
+            fig_box = px.box(df, y='Age', x='Stroke', 
+                    title='Age Distribution: Stroke vs No Stroke',
+                    labels={'Age': 'Age (years)', 'Stroke': 'Had Stroke'},
+                    color='Stroke',
+                    color_discrete_map={0: '#3498db', 1: '#e74c3c'})
+            fig_box.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
+            fig_box.update_layout(height=400, showlegend=False)
+            st.plotly_chart(fig_box, use_container_width=True)
 
 # -----------------------
 # Risk Factors
@@ -138,3 +154,4 @@ with col2:
             )
         except Exception:
             st.markdown("**Quick read:** The graph shows the status of stroke in patients with no heart diseases and heart diseases. In terms of the graph, the proportion is high in patients with heart diseases.")
+
