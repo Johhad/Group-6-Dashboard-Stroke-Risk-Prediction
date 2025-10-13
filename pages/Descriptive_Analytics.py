@@ -219,7 +219,7 @@ with col4:
             f"**Quick read:** Average glucose level for **Stroke** patients: **{glucose_stroke:.1f} mg/dL**; for **No Stroke**: **{glucose_nostroke:.1f} mg/dL**."
         )
 #----Average BMI values vary between patients with hypertension and patients without hypertension
-with col5
+with col5:
     with st.container():
         # Top description row
         st.markdown("**Average BMI by Hypertension Status** — Average BMI values for patients with and without hypertension.")
