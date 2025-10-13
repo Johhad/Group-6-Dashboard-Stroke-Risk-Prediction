@@ -55,10 +55,10 @@ with col1:
         - **Deployment:** Streamlit Cloud
         
         ### Model Information
-        - **Algorithm:** Random Forest Classifier
+        - **Algorithm:** Support Vector Machine (SVM)
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Validation Accuracy:** ~92%
+        - **Validation Recall:** ~92%
         - **Cross-validation:** 5-fold
         
         ### Key Features
