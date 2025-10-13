@@ -106,6 +106,7 @@ with col2:
 # -----------------------
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
+col3 = st.columns(1)
 
 # ---- Stroke distribution (with description + analysis) ----
 with col1:
@@ -159,4 +160,29 @@ with col2:
             )
         except Exception:
             st.markdown("**Quick read:** The graph shows the status of stroke in patients with no heart diseases and heart diseases. In terms of the graph, the proportion is high in patients with heart diseases.")
+# -------Stroke rate by smoking status----
+with col3:
+    with st.container():
+        # Top description row
+        st.markdown("**Stroke Rate by Smoking Status** — Stroke rates for different smoking status categories.")
+
+        # Chart
+        grp_smoke = df.groupby('Smoking Status')['Stroke'].mean().reset_index()
+        grp_smoke['Stroke Rate (%)'] = grp_smoke['Stroke'] * 100
+        fig_smoke = px.bar(
+            grp_smoke,
+            x='Smoking Status',
+            y='Stroke Rate (%)',
+            title='Stroke Rate by Smoking Status',
+            labels={'Smoking Status': 'Smoking Status', 'Stroke Rate (%)': 'Stroke Rate (%)'},
+            color_discrete_sequence=['#9467bd']
+        )
+        fig_smoke.update_layout(height=400)
+        st.plotly_chart(fig_smoke, use_container_width=True)
+
+        # Bottom analysis row (auto)
+        st.markdown(
+            " **Quick read:** Current smokers have the highest stroke rate, followed by former smokers. Never smokers have the lowest stroke rate."
+        )
+
 
