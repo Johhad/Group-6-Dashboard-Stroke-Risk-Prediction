@@ -85,7 +85,7 @@ with col2:
     with col3:
         with st.container():
             # Top description row
-            st.markdown("**Age Distribution by Stroke Status** — Overlaid bloxpplot showing age distribution for patients with and without stroke.")
+            st.markdown("**Age Distribution by Stroke Status** — Overlaid bloxplot showing age distribution for patients with and without stroke.")
             # Chart
             fig_box = px.box(df, y='Age', x='Stroke', 
                     title='Age Distribution: Stroke vs No Stroke',
