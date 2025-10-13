@@ -86,7 +86,7 @@ with col2:
         with st.container():
             # Top description row
             st.markdown("**Age Distribution by Stroke Status** — Overlaid histograms showing age distribution for patients with and without stroke.")
-
+            # Chart
             fig_box = px.box(df, y='Age', x='Stroke', 
                     title='Age Distribution: Stroke vs No Stroke',
                     labels={'Age': 'Age (years)', 'Stroke': 'Had Stroke'},
@@ -95,7 +95,12 @@ with col2:
             fig_box.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
             fig_box.update_layout(height=400, showlegend=False)
             st.plotly_chart(fig_box, use_container_width=True)
-
+            # Bottom analysis row (auto)
+            age_stroke_mean = df[df['Stroke'] == 1]['Age'].mean()
+            age_nostroke_mean = df[df['Stroke'] == 0]['Age'].mean()
+            st.markdown(
+                f"**Quick read:** Mean age for **Stroke** patients: **{age_stroke_mean:.1f}** years; for **No Stroke**: **{age_nostroke_mean:.1f}** years."
+            )
 # -----------------------
 # Risk Factors
 # -----------------------
