@@ -106,30 +106,9 @@ with col2:
 # -----------------------
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
-col3, col4 = st.columns(2)
-
-# ---- Stroke distribution (with description + analysis) ----
-with col1:
-    with st.container():
-        # Top description row
-        st.markdown("**Percentages of Stroke and No-stroke** — Proportion of patients with recorded stroke outcome (1 = stroke, 0 = no stroke).")
-
-        # Chart
-        stroke_counts = df['Stroke'].value_counts().sort_index()  # expect 0,1
-        names = ['No Stroke', 'Stroke'] if set(stroke_counts.index) <= {0, 1} else stroke_counts.index
-        fig_stroke = px.pie(values=stroke_counts.values,
-                            names=names,
-                            title='Stroke Distribution',
-                            color_discrete_sequence=['#2ca02c', '#d62728'])
-        fig_stroke.update_layout(height=400)
-        st.plotly_chart(fig_stroke, use_container_width=True)
-
-        # Bottom analysis row (auto)
-        stroke_pct = (df['Stroke'] == 1).mean() * 100
-        st.markdown(f"**Quick read:** Stroke rate **{stroke_pct:.1f}%**; no-stroke **{100 - stroke_pct:.1f}%**. The dataset that the dashboard trained has imbalance dataset with only 4.8% of stroke patients. This has certain implications on machine learning model training stages.")
 
 # ---- Heart disease vs stroke (with description + analysis) ----
-with col2:
+with col1:
     with st.container():
         # Top description row
         st.markdown("**Heart Disease and Stroke** — Counts of patients by **Heart Disease** status and **Stroke** outcome.")
@@ -161,7 +140,7 @@ with col2:
         except Exception:
             st.markdown("**Quick read:** The graph shows the status of stroke in patients with no heart diseases and heart diseases. In terms of the graph, the proportion is high in patients with heart diseases.")
 # -------Stroke rate by smoking status----
-with col3:
+with col2:
     with st.container():
         # Top description row
         st.markdown("**Stroke Rate by Smoking Status** — Stroke rates for different smoking status categories.")
