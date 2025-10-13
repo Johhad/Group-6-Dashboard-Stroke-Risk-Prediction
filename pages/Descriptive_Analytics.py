@@ -190,5 +190,23 @@ with col3:
         st.markdown(
             " **Quick read:** The chart shows that the prevalence of heart disease varies by work type and residence, with certain work types in urban areas showing higher rates."
         )
+with col4:
+    with st.container():
+        # Top description row
+        st.markdown("**BMI Distribution by Stroke Status** — Overlaid histogram showing BMI distribution for patients with and without stroke.")
 
+        # Chart
+        fig_bmi = px.histogram(df, x='BMI', color='Stroke', barmode='overlay',
+                               title='BMI Distribution: Stroke vs No Stroke',
+                               labels={'BMI': 'Body Mass Index (BMI)', 'Stroke': 'Had Stroke'},
+                               color_discrete_map={0: '#3498db', 1: '#e74c3c'})
+        fig_bmi.update_layout(height=400, bargap=0.1)
+        st.plotly_chart(fig_bmi, use_container_width=True)
+
+        # Bottom analysis row (auto)
+        bmi_stroke_mean = df[df['Stroke'] == 1]['BMI'].mean()
+        bmi_nostroke_mean = df[df['Stroke'] == 0]['BMI'].mean()
+        st.markdown(
+            f"**Quick read:** Mean BMI for **Stroke** patients: **{bmi_stroke_mean:.1f}**; for **No Stroke**: **{bmi_nostroke_mean:.1f}**."
+        )
 

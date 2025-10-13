@@ -2,7 +2,6 @@ import streamlit as st
 
 from forms.contact import contact_form
 
-st.write("# Welcome to Stroke prediction Dashboard ")
 
 #---define forms for contact---
 @st.dialog("Contact Us")
@@ -33,7 +32,7 @@ st.markdown("""
 # About Page
 
 st.markdown(
-    '<div class="page-header-box"><div class="page-header-text">About NeuroInsight</div></div>',
+    '<div class="page-header-box"><div class="page-header-text">Welcome to NeuroInsight</div></div>',
     unsafe_allow_html=True
 )
     
@@ -55,10 +54,10 @@ with col1:
         - **Deployment:** Streamlit Cloud
         
         ### Model Information
-        - **Algorithm:** Random Forest Classifier
+        - **Algorithm:** Support Vector Machine (SVM)
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Validation Accuracy:** ~92%
+        - **Validation Recall:** ~92%
         - **Cross-validation:** 5-fold
         
         ### Key Features
