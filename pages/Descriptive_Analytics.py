@@ -106,6 +106,7 @@ with col2:
 # -----------------------
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
 # ---- Heart disease vs stroke (with description + analysis) ----
 with col1:
@@ -162,6 +163,32 @@ with col2:
         # Bottom analysis row (auto)
         st.markdown(
             " **Quick read:** Current smokers have the highest stroke rate, followed by former smokers. Never smokers have the lowest stroke rate."
+        )
+#--- Percentage of patients with heart disease disaggregated by types of works and urban/rural residency
+with col3:
+    with st.container():
+        # Top description row
+        st.markdown("**Heart Disease by Work Type and Residence** — Percentage of patients with heart disease disaggregated by types of work and urban/rural residency.")
+
+        # Chart
+        grp_work = df.groupby(['Work Type', 'Residence Type'])['Heart Disease'].mean().reset_index()
+        grp_work['Heart Disease Rate (%)'] = grp_work['Heart Disease'] * 100
+        fig_work = px.bar(
+            grp_work,
+            x='Work Type',
+            y='Heart Disease Rate (%)',
+            color='Residence Type',
+            barmode='group',
+            title='Heart Disease by Work Type and Residence',
+            labels={'Work Type': 'Work Type', 'Heart Disease Rate (%)': 'Heart Disease Rate (%)', 'Residence Type': 'Residence'},
+            color_discrete_map={'Urban': '#2ca02c', 'Rural': '#d62728'}
+        )
+        fig_work.update_layout(height=400)
+        st.plotly_chart(fig_work, use_container_width=True)
+
+        # Bottom analysis row (auto)
+        st.markdown(
+            " **Quick read:** The chart shows that the prevalence of heart disease varies by work type and residence, with certain work types in urban areas showing higher rates."
         )
 
 
