@@ -198,14 +198,14 @@ with col4:
         st.markdown("**Average Glucose Level by Stroke Status** — Average glucose levels for patients with and without stroke.")
 
         # Chart
-        grp_glucose = df.groupby('Stroke')['Avg Glucose Level'].mean().reset_index()
+        grp_glucose = df.groupby('Stroke')['Glucose'].mean().reset_index()
         fig_glucose = px.bar(
             grp_glucose,
             x='Stroke',
             y='Avg Glucose Level',
             title='Average Glucose Level by Stroke Status',
             labels={'Stroke': 'Stroke Status', 'Avg Glucose Level': 'Average Glucose Level (mg/dL)'},
-            color_discrete_sequence=['#ff7f0e']
+            color_discrete_sequence=["#250feb"]
         )
         fig_glucose.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
         fig_glucose.update_layout(height=400)
