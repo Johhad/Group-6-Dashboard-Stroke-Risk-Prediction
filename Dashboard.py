@@ -46,26 +46,4 @@ pg = st.navigation(
 #---Run navigation---
 pg.run()
 
-#---Color of sidebar
-st.markdown(
-    """
-    <style>
-    /* Sidebar background and text color for all pages */
-    [data-testid="stSidebar"] {
-        background-color: #0e2a47;
-        color: #ffffff;
-    }
-    [data-testid="stSidebar"] * {
-        color: #ffffff !important;
-    }
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] h4,
-    [data-testid="stSidebar"] h5,
-    [data-testid="stSidebar"] h6 {
-        color: #ffffff !important;
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
+
