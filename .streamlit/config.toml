@@ -8,4 +8,4 @@ textColor = "#374151"
 [theme.sidebar]
 primaryColor = "#0e2a47"
 backgroundColor = "#0e2a47"
-
+textColor = "#f5f6f8ff"
