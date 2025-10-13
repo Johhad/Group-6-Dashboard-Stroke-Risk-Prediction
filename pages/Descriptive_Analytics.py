@@ -181,32 +181,39 @@ with col3:
             barmode='group',
             title='Heart Disease by Work Type and Residence',
             labels={'Work Type': 'Work Type', 'Heart Disease Rate (%)': 'Heart Disease Rate (%)', 'Residence Type': 'Residence'},
-            color_discrete_map={'Urban': '#2ca02c', 'Rural': '#d62728'}
+            color_discrete_map={'Urban': "#2c5aa0", 'Rural': "#279fd6"}
         )
         fig_work.update_layout(height=400)
         st.plotly_chart(fig_work, use_container_width=True)
 
         # Bottom analysis row (auto)
         st.markdown(
-            " **Quick read:** The chart shows that the prevalence of heart disease varies by work type and residence, with certain work types in urban areas showing higher rates."
+            " **Quick read:** The chart shows that the prevalence of heart disease varies by work type and residence, self employed showed higher rates."
         )
+
+#-----Average glucose level of stroke and no-stroke patients
 with col4:
     with st.container():
         # Top description row
-        st.markdown("**BMI Distribution by Stroke Status** — Overlaid histogram showing BMI distribution for patients with and without stroke.")
+        st.markdown("**Average Glucose Level by Stroke Status** — Average glucose levels for patients with and without stroke.")
 
         # Chart
-        fig_bmi = px.histogram(df, x='BMI', color='Stroke', barmode='overlay',
-                               title='BMI Distribution: Stroke vs No Stroke',
-                               labels={'BMI': 'Body Mass Index (BMI)', 'Stroke': 'Had Stroke'},
-                               color_discrete_map={0: '#3498db', 1: '#e74c3c'})
-        fig_bmi.update_layout(height=400, bargap=0.1)
-        st.plotly_chart(fig_bmi, use_container_width=True)
+        grp_glucose = df.groupby('Stroke')['Avg Glucose Level'].mean().reset_index()
+        fig_glucose = px.bar(
+            grp_glucose,
+            x='Stroke',
+            y='Avg Glucose Level',
+            title='Average Glucose Level by Stroke Status',
+            labels={'Stroke': 'Stroke Status', 'Avg Glucose Level': 'Average Glucose Level (mg/dL)'},
+            color_discrete_sequence=['#ff7f0e']
+        )
+        fig_glucose.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
+        fig_glucose.update_layout(height=400)
+        st.plotly_chart(fig_glucose, use_container_width=True)
 
         # Bottom analysis row (auto)
-        bmi_stroke_mean = df[df['Stroke'] == 1]['BMI'].mean()
-        bmi_nostroke_mean = df[df['Stroke'] == 0]['BMI'].mean()
+        glucose_stroke = grp_glucose[grp_glucose['Stroke'] == 1]['Avg Glucose Level'].values[0]
+        glucose_nostroke = grp_glucose[grp_glucose['Stroke'] == 0]['Avg Glucose Level'].values[0]
         st.markdown(
-            f"**Quick read:** Mean BMI for **Stroke** patients: **{bmi_stroke_mean:.1f}**; for **No Stroke**: **{bmi_nostroke_mean:.1f}**."
+            f"**Quick read:** Average glucose level for **Stroke** patients: **{glucose_stroke:.1f} mg/dL**; for **No Stroke**: **{glucose_nostroke:.1f} mg/dL**."
         )
-
