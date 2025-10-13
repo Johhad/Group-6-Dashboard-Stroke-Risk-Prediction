@@ -1,11 +1,11 @@
 [theme]
 base = "light"
-primaryColor = "#f2f4faff"
+primaryColor = "#3b82f6"
 backgroundColor ="rgba(226, 244, 252, 1)"
-secondaryBackgroundColor = "5fbde6ff"
-# textColor =
-# linkColor =
-# linkUnderline = 
-# codeBackgroundColor =
+secondaryBackgroundColor = "#93c5fd"
+textColor = "#1f2937"
+linkColor = "#2563eb"
+linkUnderline = True
+codeBackgroundColor = "#bfdbfe"
 
 
