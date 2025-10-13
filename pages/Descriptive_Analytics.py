@@ -106,7 +106,7 @@ with col2:
 # -----------------------
 st.subheader("Risk Factors")
 col1, col2 = st.columns(2)
-col3 = st.columns(1)
+col3, col4 = st.columns(2)
 
 # ---- Stroke distribution (with description + analysis) ----
 with col1:
