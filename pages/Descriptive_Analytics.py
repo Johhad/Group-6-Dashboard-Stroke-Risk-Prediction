@@ -202,9 +202,9 @@ with col4:
         fig_glucose = px.bar(
             grp_glucose,
             x='Stroke',
-            y='Avg Glucose Level',
+            y='Glucose',
             title='Average Glucose Level by Stroke Status',
-            labels={'Stroke': 'Stroke Status', 'Avg Glucose Level': 'Average Glucose Level (mg/dL)'},
+            labels={'Stroke': 'Stroke Status', 'Glucose': 'Average Glucose Level (mg/dL)'},
             color_discrete_sequence=["#250feb"]
         )
         fig_glucose.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
@@ -212,8 +212,8 @@ with col4:
         st.plotly_chart(fig_glucose, use_container_width=True)
 
         # Bottom analysis row (auto)
-        glucose_stroke = grp_glucose[grp_glucose['Stroke'] == 1]['Avg Glucose Level'].values[0]
-        glucose_nostroke = grp_glucose[grp_glucose['Stroke'] == 0]['Avg Glucose Level'].values[0]
+        glucose_stroke = grp_glucose[grp_glucose['Stroke'] == 1]['Glucose'].values[0]
+        glucose_nostroke = grp_glucose[grp_glucose['Stroke'] == 0]['Glucose'].values[0]
         st.markdown(
             f"**Quick read:** Average glucose level for **Stroke** patients: **{glucose_stroke:.1f} mg/dL**; for **No Stroke**: **{glucose_nostroke:.1f} mg/dL**."
         )
