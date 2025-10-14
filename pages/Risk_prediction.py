@@ -1,4 +1,5 @@
 # risk_prediction.py  (Streamlit page)
+import pip
 import streamlit as st
 import pandas as pd
 import numpy as np
