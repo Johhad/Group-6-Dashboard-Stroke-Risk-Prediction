@@ -1,6 +1,7 @@
 [theme]
 base="light"
 secondaryBackgroundColor="#0e2a47"
+textColor = "#FFFFFF"
 
 
 [theme.sidebar]
