@@ -1,12 +1,6 @@
 [theme]
-base = "light"
-primaryColor = "#f2f4fa"  # Slightly cooler light tone
-backgroundColor = "rgba(226, 244, 252, 1)"  # Soft pastel blue
-secondaryBackgroundColor = "#5fbde6ff"  # Vibrant blue highlight
-textColor = "#333333"  # Dark gray for readability
-linkColor = "#007acc"  # Bright blue for links
-linkUnderline = True  # Underline links for visual clarity
-codeBackgroundColor = "#e0f7fa"  # Light cyan for code blocks
+base="light"
+secondaryBackgroundColor="#0e2a47"
 
 
 [theme.sidebar]
@@ -14,3 +8,5 @@ primaryColor = "#0e2a47"
 backgroundColor = "#0e2a47"
 textColor = "#f5f6f8ff"
 codeFontSize = 16
+
+
