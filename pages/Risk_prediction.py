@@ -5,6 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 import pickle, json
 from pathlib import Path
+pip install imbalanced-learn
 
 st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
 
