@@ -1,4 +1,4 @@
-# risk_prediction.py  (Streamlit page)
+# risk_prediction.py  (Streamlit page) — UPDATED with "Married"
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -38,14 +38,18 @@ default_work  = _mode('Work Type', 'Private')
 default_res   = _mode('Residence Type', 'Urban')
 default_smoke = _mode('Smoking Status', 'never smoked')
 
+# NEW: Married default (single binary column in your training features)
+default_married = int(_mode('Married', 0))
+married_default_index = 1 if default_married == 1 else 0  # 0=No, 1=Yes
+
+# Sex options (Female is baseline when both dummies are 0)
+sex_opts = ['Female', 'Male', 'Other']
+default_sex = 'Female'
+
 yes_no_display = ['No', 'Yes']
 work_type_opts = ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked']
 res_type_opts  = ['Urban', 'Rural']
 smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
-
-# NEW: Sex options (Female is baseline when both dummies are 0)
-sex_opts = ['Female', 'Male', 'Other']
-default_sex = 'Female'
 
 def _yesno_from01(val01):
     return 'Yes' if str(val01) == '1' else 'No'
@@ -74,6 +78,7 @@ def load_model_and_meta():
         except Exception:
             pass
 
+    # Try to read raw expected feature columns (as exposed by your prep)
     try:
         expected_cols = list(model.named_steps["prep"].transformers_[0][2])
     except Exception:
@@ -103,8 +108,13 @@ with st.form("patient_form"):
             "Heart Disease", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
-        # NEW: Sex input
         sex = st.selectbox("Sex", sex_opts, index=sex_opts.index(default_sex))
+        # NEW: Married input
+        married_disp = st.radio(
+            "Married", yes_no_display, horizontal=True,
+            index=married_default_index
+        )
+
     with c2:
         work_type = st.selectbox(
             "Work Type", work_type_opts,
@@ -128,42 +138,64 @@ with st.form("patient_form"):
 # -----------------------------
 def build_model_input(expected_cols,
                       age, hypertension_disp, heart_disease_disp, sex,
+                      married_disp,
                       work_type, residence_type, glucose, bmi, smoking):
     """
     Build a single-row DataFrame matching the model training columns.
-    Unknown one-hot columns default to 0.0 (Female is baseline for Sex).
+    - 'Married' is a single binary column in your training features.
+    - Sex is handled via dummies (Sex_Male, Sex_Other) with Female as baseline.
     """
-    row = {col: 0.0 for col in expected_cols}
+    # If we could introspect the expected columns, fill that shape exactly
+    if expected_cols:
+        row = {col: 0.0 for col in expected_cols}
 
-    # numeric/binary
-    if "Age" in row:           row["Age"] = float(age)
-    if "Hypertension" in row:  row["Hypertension"] = 1.0 if hypertension_disp == "Yes" else 0.0
-    if "Heart Disease" in row: row["Heart Disease"] = 1.0 if heart_disease_disp == "Yes" else 0.0
-    if "Glucose" in row:       row["Glucose"] = float(glucose)
-    if "BMI" in row:           row["BMI"] = float(bmi)
+        # numeric/binary
+        if "Age" in row:           row["Age"] = float(age)
+        if "Hypertension" in row:  row["Hypertension"] = 1.0 if hypertension_disp == "Yes" else 0.0
+        if "Heart Disease" in row: row["Heart Disease"] = 1.0 if heart_disease_disp == "Yes" else 0.0
+        if "Glucose" in row:       row["Glucose"] = float(glucose)
+        if "BMI" in row:           row["BMI"] = float(bmi)
 
-    # Sex dummies (Female = both 0)
-    if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male"  else 0.0
-    if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
+        # NEW: Married single column
+        if "Married" in row:       row["Married"] = 1.0 if married_disp == "Yes" else 0.0
 
-    # Work Type
-    if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
-    if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
-    if "Work Type_children" in row:        row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
-    if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
-    if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
+        # Sex dummies (Female = both 0)
+        if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male"  else 0.0
+        if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
 
-    # Residence
-    if "Residence Type_Urban" in row:      row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
-    if "Residence Type_Rural" in row:      row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
+        # Work Type
+        if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
+        if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
+        if "Work Type_children" in row:        row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
+        if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
+        if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
 
-    # Smoking
-    if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
-    if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
-    if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
-    if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
+        # Residence
+        if "Residence Type_Urban" in row:      row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
+        if "Residence Type_Rural" in row:      row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
 
-    return pd.DataFrame([row], columns=expected_cols)
+        # Smoking
+        if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
+        if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
+        if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
+        if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
+
+        return pd.DataFrame([row], columns=expected_cols)
+
+    # Fallback: minimal row if columns couldn't be introspected
+    return pd.DataFrame([{
+        "Age": float(age),
+        "Hypertension": 1.0 if hypertension_disp == "Yes" else 0.0,
+        "Heart Disease": 1.0 if heart_disease_disp == "Yes" else 0.0,
+        "Married": 1.0 if married_disp == "Yes" else 0.0,
+        "Glucose": float(glucose),
+        "BMI": float(bmi),
+        # Categorical raw values; your pipeline should encode them
+        "Sex": sex,
+        "Work Type": work_type,
+        "Residence Type": residence_type,
+        "Smoking?": smoking,
+    }])
 
 # -----------------------------
 # Gauge helpers
@@ -226,13 +258,14 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
 # Predict on submit
 # -----------------------------
 if submitted:
-    # 1) build model-ready row (now includes sex)
+    # Build model-ready row (now includes Married)
     X_user = build_model_input(
         EXPECTED_COLS,
         age=age,
         hypertension_disp=hypertension_disp,
         heart_disease_disp=heart_disease_disp,
-        sex=sex,  # NEW
+        sex=sex,
+        married_disp=married_disp,   # NEW
         work_type=work_type,
         residence_type=residence_type,
         glucose=glucose,
@@ -240,7 +273,7 @@ if submitted:
         smoking=smoking
     )
 
-    # 2) predict probability and class (using saved threshold)
+    # Predict probability and class (using saved threshold)
     try:
         prob = float(model.predict_proba(X_user)[0][1])
     except Exception as e:
@@ -249,17 +282,18 @@ if submitted:
 
     pred = int(prob >= DECISION_THR)
 
-    # 3) render gauge (prob * 100)
+    # Gauge (prob * 100)
     render_risk_gauge(prob * 100.0, title="Model-Estimated Stroke Risk", decision_thr=DECISION_THR)
 
-    # 4) show numeric outputs
+    # Numeric outputs
     st.markdown(f"**Predicted probability:** `{prob:.3f}`")
     st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**Low stroke risk (0)**'}")
 
-    # 5) stash inputs/outputs for other pages
+    # Stash inputs/outputs for other pages
     st.session_state['rp_input'] = {
         'Age': age,
-        'Sex': sex,  # NEW
+        'Sex': sex,
+        'Married': 1 if married_disp == 'Yes' else 0,   # NEW
         'Hypertension': 1 if hypertension_disp == 'Yes' else 0,
         'Heart Disease': 1 if heart_disease_disp == 'Yes' else 0,
         'Work Type': work_type,
