@@ -90,7 +90,45 @@ def load_model_and_meta():
 model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
 if model is None:
     st.stop()
+# -----------------------------
+# Custom CSS for clearer radio buttons
+# -----------------------------
+st.markdown("""
+<style>
+/* General radio button container styling */
+div[role='radiogroup'] label {
+    background-color: #ffffff;           /* white default background */
+    border: 2px solid #cbd5e1;           /* light gray border */
+    border-radius: 10px;
+    padding: 6px 16px;
+    margin: 4px;
+    color: #1e293b;                      /* dark gray text */
+    font-weight: 600;
+    transition: all 0.25s ease-in-out;
+}
 
+/* Hover effect for better feedback */
+div[role='radiogroup'] label:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+/* Selected (checked) radio button */
+div[role='radiogroup'] label:has(input:checked) {
+    background-color: #2563eb !important;  /* vivid blue for selected */
+    color: #ffffff !important;              /* white text */
+    border-color: #1e40af !important;
+    box-shadow: 0 0 4px rgba(37,99,235,0.6);
+}
+
+/* Improve spacing inside radio groups */
+div[role='radiogroup'] {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+</style>
+""", unsafe_allow_html=True)
 # -----------------------------
 # Form
 # -----------------------------
