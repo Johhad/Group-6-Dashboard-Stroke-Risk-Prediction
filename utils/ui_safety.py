@@ -1,28 +1,32 @@
 # utils/ui_safety.py
-
 import streamlit as st
 import matplotlib.pyplot as plt
 import gc
 
-def page_safety(title: str | None = None, layout: str = "wide"):
-    """
-    Global page-safety initializer.
-    - Closes all active Matplotlib figures (prevents 'bleed').
-    - Forces garbage collection to release memory between pages.
-    - Sets consistent Streamlit layout.
-    - Optionally sets page title.
-    """
+def begin_page(title: str | None = None, layout: str = "wide"):
     try:
-        plt.close('all')           # Close any lingering Matplotlib plots
-        gc.collect()               # Clean any cached figure objects
+        plt.close('all')
+        gc.collect()
     except Exception:
         pass
 
     try:
         st.set_page_config(layout=layout)
     except Exception:
-        # Streamlit only allows set_page_config once per app
         pass
 
+    prev_root_key = "_active_root_container"
+    if prev_root_key in st.session_state and st.session_state[prev_root_key] is not None:
+        try:
+            st.session_state[prev_root_key].empty()
+        except Exception:
+            pass
+
+    root = st.container()
+    st.session_state[prev_root_key] = root
+
     if title:
-        st.title(title)
+        with root:
+            st.title(title)
+
+    return root
