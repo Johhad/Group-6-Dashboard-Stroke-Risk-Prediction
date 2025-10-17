@@ -1,12 +1,10 @@
-# risk_prediction.py  (Streamlit page) — UPDATED with "Married"
+# risk_prediction.py  (Streamlit page)
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import pickle, json
 from pathlib import Path
-
-st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
 
 st.title("Risk Prediction 🧑‍⚕️")
 st.caption("This page predicts stroke risk using the trained SVM model based on the input features below.")
@@ -166,10 +164,10 @@ with st.form("patient_form"):
         )
         glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
         
-        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300,
-                                    value=default_height_cm, step=1)
-        weight_kg = st.number_input("Weight (kg)", min_value=10.0, max_value=300.0,
-                                    value=default_weight_kg, step=0.5)
+        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=150, step=1, key="risk_height")
+        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=60, step=1, key="risk_weight")
+        height_m = height_cm / 100
+        bmi_value = weight_kg / (height_m ** 2)
 
         if height_cm and weight_kg:
             height_m = height_cm / 100.0

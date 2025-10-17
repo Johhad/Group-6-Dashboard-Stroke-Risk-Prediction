@@ -1,4 +1,4 @@
-# pages/preventive.py  — CLEAN SUMMARY (no risk/threshold shown at top) + Married support
+# pages/preventive.py 
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,7 +6,6 @@ import pickle, json, warnings
 from pathlib import Path
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Preventive Insights", page_icon="🛡️", layout="wide")
 st.title("Preventive Insights 🛡️")
 st.caption("Impact on predicted stroke probability based Patient data using SHAP .")
 
