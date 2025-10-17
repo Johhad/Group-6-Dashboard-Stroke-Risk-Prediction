@@ -1,4 +1,5 @@
-# risk_prediction.py  (Streamlit page)
+# risk_prediction.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,7 +7,10 @@ import plotly.graph_objects as go
 import pickle, json
 from pathlib import Path
 
-st.title("Risk Prediction 🧑‍⚕️")
+from utils.ui_safety import page_safety
+page_safety("Risk Prediction 🧑‍⚕️")
+
+#st.title("Risk Prediction 🧑‍⚕️")
 st.caption("This page predicts stroke risk using the trained SVM model based on the input features below.")
 
 # -----------------------------

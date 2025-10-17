@@ -16,7 +16,10 @@ plt.close('all')
 import seaborn as sns
 import re
 
-st.title("🩺 Diagnostic Analytics")
+from utils.ui_safety import page_safety
+page_safety("🩺 Diagnostic Analytics") 
+
+#st.title("🩺 Diagnostic Analytics")
 st.caption("Diagnostic analysis of the dataset used in this project.")
 
 ART = Path("artifacts/diagnostic")

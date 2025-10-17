@@ -1,5 +1,8 @@
 #About page
 
+from utils.ui_safety import page_safety
+page_safety("About") 
+
 import streamlit as st
 
 from forms.contact import contact_form

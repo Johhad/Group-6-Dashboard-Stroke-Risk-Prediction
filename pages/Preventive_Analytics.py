@@ -6,7 +6,10 @@ import pickle, json, warnings
 from pathlib import Path
 import plotly.graph_objects as go
 
-st.title("Preventive Insights 🛡️")
+from utils.ui_safety import page_safety
+page_safety("Preventive Insights 🛡️")
+
+#st.title("Preventive Insights 🛡️")
 st.caption("Impact on predicted stroke probability based Patient data using SHAP .")
 
 # ------------------ require prior submission ------------------

@@ -4,7 +4,10 @@ import streamlit as st
 import numpy as np
 import plotly.express as px
 
-st.title("Descriptive Analytics 📊")
+from utils.ui_safety import page_safety
+page_safety("Descriptive Analytics 📊") 
+
+#st.title("Descriptive Analytics 📊")
 st.caption("This page shows key summary descriptive analysis of the dataset that the project dashboard utilized and trained on")
 
 #🔗 Link: <https://plotly.com/python/scientific-charts/>
