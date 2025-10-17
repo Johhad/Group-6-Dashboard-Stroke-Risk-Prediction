@@ -313,7 +313,7 @@ if submitted:
         work_type=work_type,
         residence_type=residence_type,
         glucose=glucose,
-        bmi=bmi,
+        bmi=bmi_value,
         smoking=smoking
     )
 
