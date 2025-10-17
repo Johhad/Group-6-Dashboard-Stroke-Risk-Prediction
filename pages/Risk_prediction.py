@@ -163,7 +163,13 @@ with st.form("patient_form"):
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
         glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
-        bmi = st.number_input("BMI", min_value=0.0, value=default_bmi, step=0.1)
+        height_cm = st.number_input("Height (cm) - optional", min_value=50, max_value=300, value=None, step=1)
+        weight_kg = st.number_input("Weight (kg) - optional", min_value=10, max_value=300, value=None, step=1)
+        if height_cm is not None and weight_kg is not None:
+            height_m = height_cm / 100
+            bmi_value = weight_kg / (height_m ** 2)
+        else:
+            bmi_value = default_bmi
         smoking = st.selectbox(
             "Smoking?", smoke_opts,
             index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
