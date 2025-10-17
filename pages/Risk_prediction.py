@@ -32,13 +32,16 @@ def _mode(col, fallback):
 default_age   = int(round(_median('Age', 50)))
 default_gluc  = round(_median('Glucose', 100.0), 1)
 default_bmi   = round(_median('BMI', 25.0), 1)
+default_height_cm = 150
+default_weight_kg = 60.0
+default_bmi = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
 default_hyp   = _mode('Hypertension', 1)      # 0/1 common
 default_hd    = _mode('Heart Disease', 0)     # 0/1
 default_work  = _mode('Work Type', 'Private')
 default_res   = _mode('Residence Type', 'Urban')
 default_smoke = _mode('Smoking Status', 'never smoked')
 
-# NEW: Married default (single binary column in your training features)
+# Married default
 default_married = int(_mode('Married', 0))
 married_default_index = 1 if default_married == 1 else 0  # 0=No, 1=Yes
 
@@ -147,7 +150,6 @@ with st.form("patient_form"):
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
         sex = st.selectbox("Sex", sex_opts, index=sex_opts.index(default_sex))
-        # NEW: Married input
         married_disp = st.radio(
             "Married", yes_no_display, horizontal=True,
             index=married_default_index
@@ -163,13 +165,18 @@ with st.form("patient_form"):
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
         glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
-        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=None, step=1)
-        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=None, step=1)
-        if height_cm is not None and weight_kg is not None:
-            height_m = height_cm / 100
-            bmi_value = weight_kg / (height_m ** 2)
+        
+        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300,
+                                    value=default_height_cm, step=1)
+        weight_kg = st.number_input("Weight (kg)", min_value=10.0, max_value=300.0,
+                                    value=default_weight_kg, step=0.5)
+
+        if height_cm and weight_kg:
+            height_m = height_cm / 100.0
+            bmi_value = float(weight_kg) / (height_m ** 2) if height_m > 0 else default_bmi
         else:
             bmi_value = default_bmi
+            
         smoking = st.selectbox(
             "Smoking?", smoke_opts,
             index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
@@ -200,7 +207,7 @@ def build_model_input(expected_cols,
         if "Glucose" in row:       row["Glucose"] = float(glucose)
         if "BMI" in row:           row["BMI"] = float(bmi)
 
-        # NEW: Married single column
+        # Married single column
         if "Married" in row:       row["Married"] = 1.0 if married_disp == "Yes" else 0.0
 
         # Sex dummies (Female = both 0)
@@ -343,6 +350,8 @@ if submitted:
         'Work Type': work_type,
         'Residence Type': residence_type,
         'Glucose': float(glucose),
+        'Height (cm)': float(height_cm),
+        'Weight (kg)': float(weight_kg),
         'BMI': float(bmi_value),
         'Smoking Status': smoking,
         'pred_proba': prob,
