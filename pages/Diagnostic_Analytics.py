@@ -29,10 +29,10 @@ TARGET = "Stroke"  # exact name only
 @st.cache_data
 def load_processed(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
-    # Ensure index can't appear as an 'ID' artifact later
     df = df.reset_index(drop=True)
-    # Normalize column names (no trailing/leading spaces)
     df.columns = [c.strip() for c in df.columns]
+    # 🔽 remove any auto-saved index columns like "Unnamed: 0", "unnamed: 0", etc.
+    df = df.loc[:, ~df.columns.str.match(r"^Unnamed", case=False)]
     # Treat bools as numeric for correlation (cast to float)
     bool_cols = df.select_dtypes(include=["bool"]).columns
     if len(bool_cols):
