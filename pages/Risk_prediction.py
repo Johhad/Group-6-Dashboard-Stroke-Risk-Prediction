@@ -147,9 +147,9 @@ with st.form("patient_form"):
             "Heart Disease", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
-        sex = st.selectbox("Sex", sex_opts, index=sex_opts.index(default_sex))
+        sex = st.selectbox("Gender", sex_opts, index=sex_opts.index(default_sex))
         married_disp = st.radio(
-            "Married", yes_no_display, horizontal=True,
+            "Ever Married?", yes_no_display, horizontal=True,
             index=married_default_index
         )
 
@@ -162,7 +162,7 @@ with st.form("patient_form"):
             "Residence Type", res_type_opts,
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
-        glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
+        glucose = st.number_input("Glucose (mg/dl)", min_value=0.0, value=default_gluc, step=0.1)
         
         height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=150, step=1, key="risk_height")
         weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=60, step=1, key="risk_weight")
@@ -176,7 +176,7 @@ with st.form("patient_form"):
             bmi_value = default_bmi
             
         smoking = st.selectbox(
-            "Smoking?", smoke_opts,
+            "Smoking Status", smoke_opts,
             index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
         )
 
