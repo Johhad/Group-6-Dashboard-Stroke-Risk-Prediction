@@ -8,9 +8,10 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Preventive Insights", page_icon="🛡️", layout="wide")
 st.title("Preventive Insights 🛡️")
-st.caption("Patient-specific explanation using SHAP (impact on predicted stroke probability).")
+st.caption("Impact on predicted stroke probability based Patient data using SHAP .")
 
 # ------------------ require prior submission ------------------
+st.subheader("Summary of Patient Input Data")
 if "rp_input" not in st.session_state:
     st.warning("No patient input found. Please submit data on the **Risk Prediction** page first.")
     st.stop()
