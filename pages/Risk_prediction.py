@@ -163,8 +163,8 @@ with st.form("patient_form"):
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
         glucose = st.number_input("Glucose", min_value=0.0, value=default_gluc, step=0.1)
-        height_cm = st.number_input("Height (cm) - optional", min_value=50, max_value=300, value=None, step=1)
-        weight_kg = st.number_input("Weight (kg) - optional", min_value=10, max_value=300, value=None, step=1)
+        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=None, step=1)
+        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=None, step=1)
         if height_cm is not None and weight_kg is not None:
             height_m = height_cm / 100
             bmi_value = weight_kg / (height_m ** 2)
@@ -343,7 +343,7 @@ if submitted:
         'Work Type': work_type,
         'Residence Type': residence_type,
         'Glucose': float(glucose),
-        'BMI': float(bmi),
+        'BMI': float(bmi_value),
         'Smoking Status': smoking,
         'pred_proba': prob,
         'predicted': pred
