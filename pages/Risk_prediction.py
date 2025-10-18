@@ -25,6 +25,7 @@ import pickle, json
 from pathlib import Path
 import seaborn as sns
 import re
+import json, joblib, streamlit as st
 
 #st.title("Risk Prediction 🧑‍⚕️")
 st.markdown(
@@ -86,39 +87,49 @@ def _yesno_from01(val01):
 # -----------------------------
 # Load trained model + threshold
 # -----------------------------
-@st.cache_resource
+@st.cache_resource(show_spinner=True)
 def load_model_and_meta():
-    model_path = Path("assets/trained_model_final.pickle")
-    thr_path   = Path("assets/decision_threshold.json")
+    base = Path(__file__).resolve().parents[1]  # repo root (folder with Dashboard.py)
+    model_path = base / "artifacts" / "diagnostic" / "model.pkl"        # <-- adjust name if different
+    meta_path  = base / "artifacts" / "diagnostic" / "model_meta.json"  # <-- optional
 
+    # 1) sanity check: file exists?
     if not model_path.exists():
-        st.error(f"Model file not found at: {model_path.resolve()}")
-        return None, 0.5, []
+        raise FileNotFoundError(f"Model file not found: {model_path}\n"
+                                f"Available files in artifacts/diagnostic: "
+                                f"{[p.name for p in (model_path.parent.glob('*'))]}")
 
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+    # 2) pre-import any custom transformers used inside the pipeline BEFORE loading
+    #    (uncomment and adjust if you used custom classes)
+    # from utils.preprocessing import MyCustomImputer, MyEncoder
 
-    # Load threshold if exists, else default 0.5
-    thr = 0.5
-    if thr_path.exists():
-        try:
-            with open(thr_path) as f:
-                thr = float(json.load(f)["threshold"])
-        except Exception:
-            pass
-
-    # Try to read raw expected feature columns (as exposed by your prep)
     try:
-        expected_cols = list(model.named_steps["prep"].transformers_[0][2])
-    except Exception:
-        expected_cols = []
+        # Prefer joblib; it handles sklearn objects well
+        model = joblib.load(model_path)
+    except Exception as e:
+        # Fallback to pickle with a useful message
+        import pickle
+        try:
+            with open(model_path, "rb") as f:
+                model = pickle.load(f)
+        except Exception as e2:
+            raise RuntimeError(
+                "Failed to load model. Common causes:\n"
+                " - custom transformer module not imported\n"
+                " - scikit-learn version mismatch\n"
+                " - corrupted/incorrect path\n"
+                f"\njoblib error: {e}\npickle error: {e2}"
+            )
 
-    st.success(f"Model loaded from {model_path.name}")
-    return model, thr, expected_cols
+    # meta (optional)
+    decision_thr, expected_cols = 0.5, None
+    if meta_path.exists():
+        with open(meta_path, "r") as f:
+            meta = json.load(f)
+        decision_thr  = float(meta.get("decision_threshold", decision_thr))
+        expected_cols = meta.get("expected_columns", expected_cols)
 
-model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
-if model is None:
-    st.stop()
+    return model, decision_thr, expected_cols
 # -----------------------------
 # Custom CSS for clearer radio buttons
 # -----------------------------
