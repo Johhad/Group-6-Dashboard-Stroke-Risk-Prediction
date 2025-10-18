@@ -15,15 +15,23 @@ A comprehensive Streamlit dashboard for predicting stroke risk using machine lea
 ## Features
 - **Real-time Risk Prediction**: Input patient data and get instant stroke risk assessment
 - **Interactive Visualizations**: Explore data through dynamic charts and graphs
-- **What-If Analysis**: Test how lifestyle changes affect stroke risk
+- **SHAP Analysis**: Analyse which features of the patient have which impacts on predicitng stroke risk for him or her
 - **Comprehensive Analytics**: View descriptive and diagnostic statistics
 - **User-Friendly Interface**: Clean, intuitive design for healthcare professionals
 
 ##Dashboard Pages
-### 1. Home
-- Overview of the dashboard
-- Navigation guide
-- Quick statistics
+### 1. About
+- Project information
+- Team details
+- Model specifications
+- Future enhancements
+- Technologies Used
+- Frontend Framework: Streamlit
+- Programming Language: Python 3.8+
+- Machine Learning: Scikit-learn
+- Data Manipulation: Pandas, NumPy
+- Visualization: Plotly
+- Deployment: Streamlit Cloud
 ### 2. Descriptive Analysis
 - Age distribution
 - Gender distribution
@@ -44,18 +52,7 @@ Multi-variable relationships
 - Scenario simulation
 - Prevention guidelines
 - Lifestyle recommendations
-6. About
-- Project information
-- Team details
-- Model specifications
-- Future enhancements
-- Technologies Used
-- Frontend Framework: Streamlit
-- Programming Language: Python 3.8+
-- Machine Learning: Scikit-learn
-- Data Manipulation: Pandas, NumPy
-- Visualization: Plotly
-- Deployment: Streamlit Cloud
+
 
 # 📁 Project Structure
 
