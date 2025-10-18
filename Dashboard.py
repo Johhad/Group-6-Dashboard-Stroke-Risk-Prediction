@@ -1,6 +1,7 @@
 #Dashboard.py
-import streamlit as st
+from pathlib import Path
 import time
+import streamlit as st
 
 st.set_page_config(
     page_title="NeuroInsight Dashboard",
@@ -9,19 +10,29 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Sidebar configuration
-st.sidebar.image("./assets/logo_NeuroInsight.png",)
+# Sidebar logo (make sure this file exists)
+st.sidebar.image("./assets/logo_NeuroInsight.png")
 
-#--- Page setup---
+# ---------- Helpers ----------
+BASE = Path(__file__).parent  # folder containing Dashboard.py
 
-about_page        = st.Page(page="pages/About.py",                 title="About",                icon=":material/info:", default=True)
-patient_pred_page = st.Page(page="pages/Risk_prediction.py",       title="Risk Prediction",     icon="🧑‍⚕️")
-preventive_page   = st.Page(page="pages/Preventive_Analytics.py",  title="Preventive Analytics",icon="🛡️")
-desc_page         = st.Page(page="pages/Descriptive_Analytics.py", title="Descriptive Analytics",icon="📊")
-diag_page         = st.Page(page="pages/Diagnostic_Analytics.py",  title="Diagnostic Analytics", icon="🩺")
+def make_page(rel_path: str, **kwargs) -> st.Page:
+    """Create a Streamlit Page from a path relative to this file, with a clear error if missing."""
+    p = BASE / rel_path
+    if not p.exists():
+        # Raising here prevents silent fallback to legacy alphabetical nav.
+        raise FileNotFoundError(f"Streamlit Page file not found: {p}")
+    return st.Page(page=str(p), **kwargs)
 
-# ---- Navigation ----
-pg = st.navigation(
+# ---------- Define pages (match EXACT filenames in /pages) ----------
+about_page        = make_page("pages/About.py",                 title="About",                 icon=":material/info:", default=True)
+patient_pred_page = make_page("pages/Risk_prediction.py",       title="Risk Prediction",       icon="🧑‍⚕️")
+preventive_page   = make_page("pages/Preventive_Analytics.py",  title="Preventive Analytics",  icon="🛡️")
+desc_page         = make_page("pages/Descriptive_Analytics.py", title="Descriptive Analytics", icon="📊")
+diag_page         = make_page("pages/Diagnostic_Analytics.py",  title="Diagnostic Analytics",  icon="🩺")
+
+# ---------- Navigation (custom groups + order) ----------
+nav = st.navigation(
     {
         "Info":    [about_page],
         "Patient": [patient_pred_page, preventive_page],
@@ -29,28 +40,19 @@ pg = st.navigation(
     }
 )
 
-# Force refresh whenever navigating to a new page because bleeds were happening and other options did not work
-import streamlit as st
-import time
-
-# Identify which page is currently selected (based on Page.title)
+# Stores last page title and triggers a one-time rerun on change.
 try:
-    current_page = pg._pages[pg._selected_page_index].title
+    current_title = nav._pages[nav._selected_page_index].title
 except Exception:
-    current_page = getattr(pg, "active_page", None) or "Unknown"
+    current_title = getattr(nav, "active_page", None) or "Unknown"
 
-# Store the last visited page
-last_page = st.session_state.get("last_page")
-
-# If a different page is now selected → full refresh
-if last_page is not None and last_page != current_page:
-    st.session_state["last_page"] = current_page
-    st.experimental_set_query_params(force_refresh=str(time.time()))
+last_title = st.session_state.get("last_page_title")
+if last_title is not None and last_title != current_title:
+    st.session_state["last_page_title"] = current_title
+    st.experimental_set_query_params(_ts=str(time.time()))
     st.rerun()
 else:
-    st.session_state["last_page"] = current_page
-# =====================================================================
+    st.session_state["last_page_title"] = current_title
 
-# ---- Run ----
-pg.run()
-
+# ---------- Run selected page ----------
+nav.run()
