@@ -1,11 +1,13 @@
 [theme]
-base="light"
-secondaryBackgroundColor="#7fb8f5ff"
-textColor = "#FFFFFF"
+base = "light"
+secondaryBackgroundColor = "#7fb8f5"   # <- 6-digit hex
+textColor = "#111827"                  # dark text for light theme
 codeFontSize = 16
+
 [client]
 toolbarMode = "developer"
+
 [server]
 headless = true
-fileWatcherType = "none"   # <- disable watchdog to avoid inotify limit
+fileWatcherType = "none"
 enableXsrfProtection = true
