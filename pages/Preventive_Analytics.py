@@ -92,7 +92,7 @@ def build_model_input(expected_cols,
 
     if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
     if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
-    if "Work Type_children" in row:        row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
+    if "Work Type_NA/underage" in row:     row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
     if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
     if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
 
@@ -206,7 +206,7 @@ phi = explainer.shap_values(X_pt.values, nsamples=200)
 shap_values = phi[1].ravel() if isinstance(phi, list) else np.array(phi).ravel()
 
 # ---- Top K + "Other features" (no baseline/prediction bars) ----
-TOP_K = 8
+TOP_K = 10
 order = np.argsort(-np.abs(shap_values))
 top_idx = order[:TOP_K]
 other_val = shap_values[order[TOP_K:]].sum() if len(order) > TOP_K else 0.0
@@ -235,14 +235,15 @@ with c1:
     )
     fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="#666")
     fig.update_layout(
-        height=420,
-        margin=dict(t=30, l=10, r=10, b=10),
+        height=600,
+        margin=dict(t=40, l=80, r=40, b=40),
         xaxis_title="SHAP value (impact on P(stroke))",
         yaxis_title="",
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(zeroline=False, automargin=True),
+        xaxis=dict(tickfont=dict(size=13), range=[-0.06, 0.12]),
+        yaxis=dict(tickfont=dict(size=13)),
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -251,12 +252,20 @@ with c2:
         f"""
 **How to read this**
 
-- Bars show how each feature **pushes the probability** up (red) or down (green).
-- Listed are the **top {TOP_K} features by absolute impact**, plus **“Other features”** (all remaining effects).
-- Positive bar → higher predicted risk; negative bar → lower predicted risk.
+This chart shows which patient factors most strongly influenced the stroke-risk prediction for this specific person.
+Each bar represents how much a factor increased or decreased the predicted probability of stroke.
+ - Red bars → Factors that increase the predicted risk of stroke for this patient.
+ - Green bars → Factors that reduce the predicted risk of stroke for this patient.
+ - The longer the bar, the stronger the effect on the prediction.
+
+Example - A patient with Glucose level as 190 mg/dl and BMI as 28
+
+Glucose (+0.070): Having high glucose than normal makes the model to predict this patient with increase probability of stroke.
+
+BMI (–0.047): Not having too high BMI values of the patient reduces the predicted stroke risk slightly for him or her.
 """
     )
 
-st.info("These SHAP values explain the model’s probability for this patient only.")
+st.info("Note: These SHAP values explain the model’s probability for this patient only. It is important to note that these values are not general risk factors.")
 
 st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
