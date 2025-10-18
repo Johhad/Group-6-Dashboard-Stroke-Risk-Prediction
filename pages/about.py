@@ -75,11 +75,16 @@ with col1:
         - **Visualization:** Plotly
         - **Deployment:** Streamlit Cloud
         
+         ### Dataset used
+        - **Dataset:** Kaggle Stroke Prediction Dataset
+        - **Key Variables:** 12 features including patient demograpics (age,gener), health conditions, work, residency and stroke
+        - **Link:** https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset      
+        
         ### Model Information
-        - **Algorithm:** Support Vector Machine (SVM)
+        - **Algorithm:** Support Vector Machine (SVM), Linear
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Validation Recall:** ~92%
+        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.53, ROC-AC: 0.77
         - **Cross-validation:** 5-fold
         
         ### Key Features
