@@ -10,10 +10,6 @@ import numpy as np
 import plotly.graph_objects as go
 import pickle, json
 from pathlib import Path
-
-# Safety: avoid cross-page Matplotlib bleed
-import matplotlib.pyplot as plt
-plt.close('all')
 import seaborn as sns
 import re
 

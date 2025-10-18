@@ -5,19 +5,19 @@ from utils.ui_safety import begin_page
 
 begin_page("Descriptive Analytics 📊") 
 
+# Clearning up the unnecessaery data
+if 'rp_input' in st.session_state:
+    del st.session_state['rp_input']
+
 import numpy as np
 import plotly.express as px
+import seaborn as sns
+import re
 
 #st.title("Descriptive Analytics 📊")
 st.caption("This page shows key summary descriptive analysis of the dataset that the project dashboard utilized and trained on")
 
 #🔗 Link: <https://plotly.com/python/scientific-charts/>
-
-# Safety: avoid cross-page Matplotlib bleed
-import matplotlib.pyplot as plt
-plt.close('all')
-import seaborn as sns
-import re
 
 @st.cache_data
 def load_data():

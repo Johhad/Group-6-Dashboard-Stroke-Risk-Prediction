@@ -5,9 +5,10 @@ import streamlit as st
 from utils.ui_safety import begin_page
 begin_page("About")
 
-# Safety: avoid cross-page Matplotlib bleed
-import matplotlib.pyplot as plt
-plt.close('all')
+# Clearning up the unnecessaery data
+if 'rp_input' in st.session_state:
+    del st.session_state['rp_input']
+
 import seaborn as sns
 import re
 

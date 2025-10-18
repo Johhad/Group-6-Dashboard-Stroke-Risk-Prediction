@@ -5,6 +5,10 @@ import streamlit as st
 from utils.ui_safety import begin_page
 begin_page("Diagnostic Analytics 🩺")
 
+# Clearning up the unnecessaery data
+if 'rp_input' in st.session_state:
+    del st.session_state['rp_input']
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,10 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-
-# Safety: avoid cross-page Matplotlib bleed
 import matplotlib.pyplot as plt
-plt.close('all')
 import seaborn as sns
 import re
 
@@ -132,7 +133,6 @@ st.markdown("Scatterplot matrix to inspect distributions and bivariate patterns.
 
 html_path = ART / "scatter_matrix.html"
 png_path  = ART / "scatter_matrix.png"
-
 if html_path.exists():
     html = html_path.read_text(encoding="utf-8")
     st.components.v1.html(html, height=580, scrolling=False)   # full page width, short height
