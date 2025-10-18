@@ -64,6 +64,22 @@ col4.markdown(f"<div style='text-align:center; background-color:#f0f2f6; padding
 # -----------------------
 # Demographics
 # -----------------------
+
+def quick_read_box(text: str, accent="#1f77b4", bg="#f7fbff"):
+    st.markdown(
+        f"""
+        <div style="
+            background:{bg};
+            padding:10px 12px;
+            border-left:4px solid {accent};
+            border-radius:8px;
+            margin:8px 0 18px;">
+            <b>Quick read:</b> {text}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 st.subheader("Demographics")
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
@@ -87,10 +103,10 @@ with col1:
         age_std = df['Age'].std()
         age_skew = df['Age'].skew()
         skew_txt = "right-skewed (more younger patients)" if age_skew > 0.3 else ("left-skewed (more older patients)" if age_skew < -0.3 else "roughly symmetric")
-        st.markdown(
-            f"**Quick read:** Mean age **{age_mean:.1f}**, median **{age_median:.1f}**, SD **{age_std:.1f}**; distribution is **{skew_txt}**."
+        quick_read_box(
+            f"Mean age <b>{age_mean:.1f}</b>, median <b>{age_median:.1f}</b>, SD <b>{age_std:.1f}</b>; "
+            f"distribution is <b>{skew_txt}</b>."
         )
-
 # ---- Gender distribution (with description + analysis) ----
 with col2:
     with st.container():
@@ -110,9 +126,7 @@ with col2:
         gender_pct = (gender_counts / gender_counts.sum() * 100).round(1).to_dict()
         male_pct = gender_pct.get('Male', 0.0)
         female_pct = gender_pct.get('Female', 0.0)
-        st.markdown(
-            f"**Quick read:** Female **{female_pct:.1f}%**, Male **{male_pct:.1f}%** of the sample."
-        )
+        quick_read_box(f"Female <b>{female_pct:.1f}%</b>, Male <b>{male_pct:.1f}%</b> of the sample.")
 
 #---#----Age distribution by stroke status----
 with col3:
@@ -132,9 +146,10 @@ with col3:
         # Bottom analysis row (auto)
         age_stroke_mean = df[df['Stroke'] == 1]['Age'].mean()
         age_nostroke_mean = df[df['Stroke'] == 0]['Age'].mean()
-        st.markdown(
-            f"**Quick read:** Mean age for **Stroke** patients: **{age_stroke_mean:.1f}** years; for **No Stroke**: **{age_nostroke_mean:.1f}** years."
-        )        
+        quick_read_box(
+            f"Mean age for <b>Stroke</b> patients: <b>{age_stroke_mean:.1f}</b> years; "
+            f"for <b>No Stroke</b>: <b>{age_nostroke_mean:.1f}</b> years."
+        )
 # -----------------------
 # Risk Factors
 # -----------------------
@@ -171,11 +186,13 @@ with col1:
             risk_nohd = df[df['Heart Disease'] == 0]['Stroke'].mean() * 100
             rr = (risk_hd / max(risk_nohd, 1e-9)) if risk_nohd > 0 else np.nan
             rr_txt = f"{rr:.2f}× higher" if np.isfinite(rr) and rr >= 1 else ("similar" if np.isfinite(rr) else "—")
-            st.markdown(
-                f"**Quick read:** Stroke among **Heart Disease = Yes**: **{risk_hd:.1f}%**; **No**: **{risk_nohd:.1f}%** → **{rr_txt}** relative risk."
+            quick_read_box(
+                f"Stroke among <b>Heart Disease = Yes</b>: <b>{risk_hd:.1f}%</b>; "
+                f"<b>No</b>: <b>{risk_nohd:.1f}%</b> → <b>{rr_txt}</b> relative risk."
             )
         except Exception:
-            st.markdown("**Quick read:** The graph shows the status of stroke in patients with no heart diseases and heart diseases. In terms of the graph, the proportion is high in patients with heart diseases.")
+            quick_read_box("Patients with heart disease show a higher stroke proportion.")
+
 # -------Stroke rate by smoking status----
 with col2:
     with st.container():
@@ -198,9 +215,8 @@ with col2:
         gc.collect()
 
         # Bottom analysis row (auto)
-        st.markdown(
-            " **Quick read:** Current smokers have the highest stroke rate, followed by former smokers. Never smokers have the lowest stroke rate."
-        )
+        quick_read_box("Current smokers have the highest stroke rate, followed by former smokers; never smokers have the lowest rate.")
+
 #--- Percentage of patients with heart disease disaggregated by types of works and urban/rural residency
 with col3:
     with st.container():
@@ -225,9 +241,8 @@ with col3:
         gc.collect()
 
         # Bottom analysis row (auto)
-        st.markdown(
-            " **Quick read:** The chart shows that the prevalence of heart disease varies by work type and residence, self employed showed higher rates."
-        )
+        quick_read_box("Prevalence varies by work type and residence; self-employed groups tend to show higher rates.")
+
 
 #-----Average glucose level of stroke and no-stroke patients
 with col4:
@@ -253,9 +268,12 @@ with col4:
         # Bottom analysis row (auto)
         glucose_stroke = grp_glucose[grp_glucose['Stroke'] == 1]['Glucose'].values[0]
         glucose_nostroke = grp_glucose[grp_glucose['Stroke'] == 0]['Glucose'].values[0]
-        st.markdown(
-            f"**Quick read:** Average glucose level for **Stroke** patients: **{glucose_stroke:.1f} mg/dL**; for **No Stroke**: **{glucose_nostroke:.1f} mg/dL**."
+        quick_read_box(
+            f"Average glucose — <b>Stroke</b>: <b>{glucose_stroke:.1f} mg/dL</b>; "
+            f"<b>No Stroke</b>: <b>{glucose_nostroke:.1f} mg/dL</b>."
         )
+
+
 #----Average BMI values vary between patients with hypertension and patients without hypertension
 with col5:
     with st.container():
@@ -279,8 +297,9 @@ with col5:
         # Bottom analysis row (auto)
         bmi_hypertension = grp_bmi[grp_bmi['Hypertension'] == 1]['BMI'].values[0]
         bmi_nohypertension = grp_bmi[grp_bmi['Hypertension'] == 0]['BMI'].values[0]
-        st.markdown(
-            f"**Quick read:** Average BMI for **Hypertension** patients: **{bmi_hypertension:.1f}**; for **No Hypertension**: **{bmi_nohypertension:.1f}**."
+        quick_read_box(
+            f"Average BMI — <b>Hypertension</b>: <b>{bmi_hypertension:.1f}</b>; "
+            f"<b>No Hypertension</b>: <b>{bmi_nohypertension:.1f}</b>."
         )
 
 st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
