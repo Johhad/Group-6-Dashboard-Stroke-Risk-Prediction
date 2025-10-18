@@ -5,3 +5,7 @@ textColor = "#FFFFFF"
 codeFontSize = 16
 [client]
 toolbarMode = "developer"
+[server]
+headless = true
+fileWatcherType = "none"   # <- disable watchdog to avoid inotify limit
+enableXsrfProtection = true
