@@ -1,4 +1,4 @@
-# NeuroPredict - Stroke Risk Prediction Dashboard
+# NeuroInsight - Stroke Risk Prediction Dashboard
 
 A comprehensive Streamlit dashboard for predicting stroke risk using machine learning algorithms and interactive data visualization.
 
@@ -118,8 +118,8 @@ font = "sans serif"
 10. Smoking Status
 
 ### Algorithm
-- **Model**: Random Forest Classifier
-- **Accuracy**: ~92%
+- **Model**: Support Vector Machine (SVM), Linear
+- **Matric**: Reacll: 0.71, f1-score: 0.53, ROC-AUC: 0.77
 - **Validation**: 5-fold cross-validation
 
 ## 🚀 Deployment
@@ -186,7 +186,7 @@ This tool is for educational and screening purposes only. It should not replace 
 - Streamlit team for the amazing framework
 
 ---
-**Last Updated**: 2024 
+**Last Updated**: 2025 
 **Version**: 1.0.0
 
 1. Create the environment with python -m venv env
