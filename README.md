@@ -171,7 +171,7 @@ This project is licensed under the Stockholm University License
 This tool is for educational and screening purposes only. It should not replace professional medical advice, diagnosis, or treatment. Always consult with qualified healthcare professionals for medical decisions.
 
 ## 📞 Contact
-- Email: info@neuropredict.com
+- Email: info@neuroinsight.com
 - GitHub: Group-6-Dashboard: [Group-6-Dashboard](https://github.com/pardonm6/Group-6-Dashboard-Stroke-Risk-Prediction)
 - Issues: Report Issues: [Report issues](https://github.com/pardonm6/Group-6-Dashboard-Stroke-Risk-Prediction)
 
