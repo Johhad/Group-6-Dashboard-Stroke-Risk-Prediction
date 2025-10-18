@@ -1,6 +1,23 @@
 #Descriptive page
 
 import streamlit as st
+
+PAGE_ID = "descriptive-page"
+st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+st.markdown(f"""
+<style>
+#{PAGE_ID} div[role='radiogroup'] label {{
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
+}}
+#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
+</style>
+""", unsafe_allow_html=True)
+
+
 from utils.ui_safety import begin_page
 
 begin_page("Descriptive Analytics 📊") 
@@ -8,6 +25,7 @@ begin_page("Descriptive Analytics 📊")
 # Clearning up the unnecessaery data
 if 'rp_input' in st.session_state:
     del st.session_state['rp_input']
+
 
 import numpy as np
 import plotly.express as px
@@ -264,3 +282,5 @@ with col5:
         st.markdown(
             f"**Quick read:** Average BMI for **Hypertension** patients: **{bmi_hypertension:.1f}**; for **No Hypertension**: **{bmi_nohypertension:.1f}**."
         )
+
+st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)

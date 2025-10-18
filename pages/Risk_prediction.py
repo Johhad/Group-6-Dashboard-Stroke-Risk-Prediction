@@ -1,6 +1,19 @@
 # risk_prediction.py
-
 import streamlit as st
+
+PAGE_ID = "risk-page"
+st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+
+st.markdown(f"""
+<style>
+#{PAGE_ID} div[role='radiogroup'] label {{ ... }}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ ... }}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{ ... }}
+#{PAGE_ID} div[role='radiogroup'] {{ ... }}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 from utils.ui_safety import begin_page
 begin_page("Risk Prediction 🧑‍⚕️")
@@ -367,3 +380,5 @@ if submitted:
             "The gauge reflects the predicted probability (0–100).")
 else:
     st.info("Fill the form and click **Predict** to see the model-estimated risk.")
+
+st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)

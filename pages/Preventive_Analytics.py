@@ -1,6 +1,22 @@
 # pages/preventive.py 
-
 import streamlit as st
+
+PAGE_ID = "preventive-page"
+st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+st.markdown(f"""
+<style>
+#{PAGE_ID} div[role='radiogroup'] label {{
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
+}}
+#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 from utils.ui_safety import begin_page
 begin_page("Preventive Insights 🛡️")
@@ -242,3 +258,5 @@ with c2:
     )
 
 st.info("These SHAP values explain the model’s probability for this patient only.")
+
+st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)

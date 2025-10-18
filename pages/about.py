@@ -1,6 +1,16 @@
 #About page
-
 import streamlit as st
+
+PAGE_ID = "about-page"
+st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+st.markdown(f"""
+<style>
+#{PAGE_ID} .page-header-box {{ background-color:#0e2a47; padding:1.2rem; border-radius:10px; border:1px solid #ccc; margin-bottom:1.5rem; text-align:center; }}
+#{PAGE_ID} .page-header-text {{ font-size:2rem; font-weight:bold; color:#fff; line-height:1.2; margin:0; }}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 from utils.ui_safety import begin_page
 begin_page("About")
@@ -14,7 +24,6 @@ import re
 
 from forms.contact import contact_form
 
-st.markdown('<div id="about-page">', unsafe_allow_html=True)
 
 #---define forms for contact---
 @st.dialog("Contact Us")
@@ -125,3 +134,5 @@ st.markdown("""
     © 2025 NeuroInsight - Group 6 Dashboard | Stroke Risk Prediction System
 </div>
 """, unsafe_allow_html=True)
+
+st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)

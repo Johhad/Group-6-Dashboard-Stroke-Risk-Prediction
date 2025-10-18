@@ -1,4 +1,6 @@
+#Dashboard.py
 import streamlit as st
+import time
 
 st.set_page_config(
     page_title="NeuroInsight Dashboard",
@@ -26,6 +28,29 @@ pg = st.navigation(
         "Project": [desc_page, diag_page],
     }
 )
+
+# Force refresh whenever navigating to a new page because bleeds were happening and other options did not work
+import streamlit as st
+import time
+
+# Identify which page is currently selected (based on Page.title)
+try:
+    current_page = pg._pages[pg._selected_page_index].title
+except Exception:
+    current_page = getattr(pg, "active_page", None) or "Unknown"
+
+# Store the last visited page
+last_page = st.session_state.get("last_page")
+
+# If a different page is now selected → full refresh
+if last_page is not None and last_page != current_page:
+    st.session_state["last_page"] = current_page
+    st.experimental_set_query_params(force_refresh=str(time.time()))
+    st.rerun()
+else:
+    st.session_state["last_page"] = current_page
+# =====================================================================
+
 # ---- Run ----
 pg.run()
 

@@ -2,6 +2,21 @@
 
 import streamlit as st
 
+PAGE_ID = "diagnostic-page"
+st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+st.markdown(f"""
+<style>
+#{PAGE_ID} div[role='radiogroup'] label {{
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
+}}
+#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
+</style>
+""", unsafe_allow_html=True)
+
 from utils.ui_safety import begin_page
 begin_page("Diagnostic Analytics 🩺")
 
@@ -198,10 +213,12 @@ else:
         title="PCA Projection (K=2, clusters aligned to Stroke)"
     )
     fig_scatter.update_layout(height=360, margin=dict(t=36, b=10, l=10, r=10), legend_title_text="Cluster")
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, use_container_width=True, key='clustering')
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Features used", f"{X_all.shape[1]}")
     m2.metric("Rows used", f"{X_all.shape[0]}")
     m3.metric("K (clusters)", "2")
     m4.metric("Silhouette score", f"{sil:.3f}" if np.isfinite(sil) else "—")
+
+st.markdown("</div>", unsafe_allow_html=True)
