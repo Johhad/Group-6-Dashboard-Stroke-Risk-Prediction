@@ -30,7 +30,14 @@ import seaborn as sns
 import re
 
 #st.title("Preventive Insights 🛡️")
-st.caption("Impact on predicted stroke probability based Patient data using SHAP .")
+st.markdown(
+    """
+    <p style='font-size:16px; color:#333; margin-top:-5px;'>
+        Impact on predicted stroke probability based on patient data using <b>SHAP</b>.
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ------------------ require prior submission ------------------
 st.subheader("Summary of Patient Input Data")
@@ -226,14 +233,41 @@ c1, c2 = st.columns([1,1])
 with c1:
     fig = go.Figure()
     fig.add_bar(
-        x=vals, y=labels, orientation="h",
+        x=vals,
+        y=labels,
+        orientation="h",
         marker_color=colors,
-        text=[f"{v:+.3f}" for v in vals],
-        textposition="inside", insidetextanchor="middle",
-        textfont=dict(size=12, color="white", family="Arial"),
         hovertemplate="<b>%{y}</b><br>SHAP: %{x:.3f}<extra></extra>",
     )
+
+    # --- centered labels as annotations ---
+    # choose readable text color (white on long bars; dark gray on tiny bars)
+    threshold = 0.018  # tweak if needed
+    for y, v, col in zip(labels, vals, colors):
+        txt = f"{v:+.3f}"
+        text_color = "white" if abs(v) >= threshold else "#2b2b2b"
+        # a subtle pill background improves readability on very small bars
+        bg = col if abs(v) >= threshold else None
+
+        fig.add_annotation(
+            x=v / 2,                # center of the bar (works for + and -)
+            y=y,
+            text=txt,
+            showarrow=False,
+            xanchor="center",
+            yanchor="middle",
+            font=dict(size=12, color=text_color, family="Arial"),
+            bgcolor=bg,             # only on longer bars
+            bordercolor=bg,
+            borderpad=2,
+            opacity=0.95 if bg else 1.0,
+        )
+
+    # zero line
     fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="#666")
+
+    # a little padding so labels never get clipped
+    pad = max(abs(min(vals)), abs(max(vals))) * 0.10
     fig.update_layout(
         height=600,
         margin=dict(t=40, l=80, r=40, b=40),
@@ -242,7 +276,10 @@ with c1:
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(tickfont=dict(size=13), range=[-0.06, 0.12]),
+        xaxis=dict(
+            tickfont=dict(size=13),
+            range=[min(0, min(vals)) - pad, max(0, max(vals)) + pad],
+        ),
         yaxis=dict(tickfont=dict(size=13)),
     )
     st.plotly_chart(fig, use_container_width=True)
