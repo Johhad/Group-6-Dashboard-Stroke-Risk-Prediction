@@ -13,6 +13,7 @@ import numpy as np
 import plotly.express as px
 import seaborn as sns
 import re
+import gc
 
 #st.title("Descriptive Analytics 📊")
 st.caption("This page shows key summary descriptive analysis of the dataset that the project dashboard utilized and trained on")
@@ -60,6 +61,7 @@ with col1:
                             color_discrete_sequence=['#1f77b4'])
         fig_age.update_layout(height=400)
         st.plotly_chart(fig_age, use_container_width=True, key="desc_age_hist")
+        gc.collect()
 
         # Bottom analysis row (auto)
         age_mean = df['Age'].mean()
@@ -83,7 +85,8 @@ with col2:
                             title='Gender Distribution',
                             color_discrete_map={'Male': '#1f77b4', 'Female': '#ff7f0e'})
         fig_gender.update_layout(height=400)
-        st.plotly_chart(fig_gender, use_container_width=True)
+        st.plotly_chart(fig_gender, use_container_width=True, key='gen_dis')
+        gc.collect()
 
         # Bottom analysis row (auto)
         gender_pct = (gender_counts / gender_counts.sum() * 100).round(1).to_dict()
@@ -106,7 +109,8 @@ with col3:
                 color_discrete_map={0: '#3498db', 1: '#e74c3c'})
         fig_box.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
         fig_box.update_layout(height=400, showlegend=False)
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, use_container_width=True,key='age_dis_str')
+        gc.collect()
         # Bottom analysis row (auto)
         age_stroke_mean = df[df['Stroke'] == 1]['Age'].mean()
         age_nostroke_mean = df[df['Stroke'] == 0]['Age'].mean()
@@ -139,7 +143,8 @@ with col1:
             labels={'Heart Disease': 'Heart Disease', 'count': 'Count', 'Stroke': 'Stroke'}
         )
         fig_heart.update_layout(height=400, xaxis=dict(tickmode='array', tickvals=[0,1], ticktext=['No','Yes']))
-        st.plotly_chart(fig_heart, use_container_width=True)
+        st.plotly_chart(fig_heart, use_container_width=True,key='ht_str')
+        gc.collect()
 
         # Bottom analysis row (auto)
         # Stroke risk by heart disease status
@@ -171,7 +176,8 @@ with col2:
             color_discrete_sequence=["#43a6df"]
         )
         fig_smoke.update_layout(height=400)
-        st.plotly_chart(fig_smoke, use_container_width=True)
+        st.plotly_chart(fig_smoke, use_container_width=True,key='str_smk')
+        gc.collect()
 
         # Bottom analysis row (auto)
         st.markdown(
@@ -197,7 +203,8 @@ with col3:
             color_discrete_map={'Urban': "#2c5aa0", 'Rural': "#279fd6"}
         )
         fig_work.update_layout(height=400)
-        st.plotly_chart(fig_work, use_container_width=True)
+        st.plotly_chart(fig_work, use_container_width=True,key='hrt_wk_re')
+        gc.collect()
 
         # Bottom analysis row (auto)
         st.markdown(
@@ -222,7 +229,8 @@ with col4:
         )
         fig_glucose.update_xaxes(ticktext=['No Stroke', 'Stroke'], tickvals=[0, 1])
         fig_glucose.update_layout(height=400)
-        st.plotly_chart(fig_glucose, use_container_width=True)
+        st.plotly_chart(fig_glucose, use_container_width=True,key='glu_str')
+        gc.collect()
 
         # Bottom analysis row (auto)
         glucose_stroke = grp_glucose[grp_glucose['Stroke'] == 1]['Glucose'].values[0]
@@ -248,7 +256,8 @@ with col5:
         )
         fig_bmi.update_xaxes(ticktext=['No Hypertension', 'Hypertension'], tickvals=[0, 1])
         fig_bmi.update_layout(height=400)
-        st.plotly_chart(fig_bmi, use_container_width=True)
+        st.plotly_chart(fig_bmi, use_container_width=True,key='bmi_str')
+        gc.collect()
         # Bottom analysis row (auto)
         bmi_hypertension = grp_bmi[grp_bmi['Hypertension'] == 1]['BMI'].values[0]
         bmi_nohypertension = grp_bmi[grp_bmi['Hypertension'] == 0]['BMI'].values[0]
