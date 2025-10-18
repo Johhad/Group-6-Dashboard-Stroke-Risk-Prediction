@@ -3,3 +3,5 @@ base="light"
 secondaryBackgroundColor="#7fb8f5ff"
 textColor = "#FFFFFF"
 codeFontSize = 16
+[client]
+toolbarMode = "developer"
