@@ -84,7 +84,7 @@ with col1:
         - **Algorithm:** Support Vector Machine (SVM), Linear
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.53, ROC-AC: 0.77
+        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.53, ROC-AUC: 0.77
         - **Cross-validation:** 5-fold
         
         ### Key Features
@@ -100,26 +100,42 @@ with col1:
         """)
     
 with col2:
-        st.markdown("""
-        ### Team Members
-        - Data Scientists
-        - Healthcare Professionals
-        - Software Engineers
-        - UX/UI Designers
-        
-        ### Contact
-        - 📧 Email: info@neuroinsight.com
-        - 🌐 Website: www.neuroinsight.com
-        - 📞 Phone: +1-800-555-1234
-        
-        ### Version
-        **Current Version:** 1.0.1
-        **Last Updated:** 2025
-        
-        ### Disclaimer
-        This tool is for educational and screening purposes only. It should not replace 
-        professional medical advice, diagnosis, or treatment.
-        """)
+        st.markdown(
+            """
+            ### Team Members
+            - Data Scientists  
+            - Healthcare Professionals  
+            - Software Engineers  
+            - UX/UI Designers  
+
+            ### Contact
+            - 📧 **Email:** info@neuroinsight.com  
+            - 🌐 **Website:** www.neuroinsight.com  
+            - 📞 **Phone:** +1-800-555-1234  
+
+            ### Version
+            **Current Version:** 1.0.1  
+            **Last Updated:** 2025  
+            """,
+            unsafe_allow_html=True,
+        )
+
+# --- Styled Disclaimer (separate for formatting control) ---
+        st.markdown(
+            """
+            <div style="
+                color:#b30000;
+                font-size:17px;
+                font-weight:600;
+                margin-top:20px;
+                margin-bottom:25px;">
+                <h4 style="margin-bottom:5px;">Disclaimer</h4>
+                This tool is for <b>educational and screening purposes only</b>.  
+                It should not replace professional medical advice, diagnosis, or treatment.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         if st.button('✉️Contact us'):
             show_contact_form() 
         
