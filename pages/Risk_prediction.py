@@ -1,17 +1,11 @@
 # risk_prediction.py
 import streamlit as st
-from pathlib import Path
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import json, joblib
-
-from utils.ui_safety import begin_page
 
 PAGE_ID = "risk-page"
 st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
 
-st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
+# (Only keep this if it's not already called in your main Dashboard)
+# st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
 
 begin_page("Risk Prediction 🧑‍⚕️")
 
@@ -24,21 +18,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import json, pickle
+
+from utils.ui_safety import begin_page
+
+
 # -----------------------------
-# Styling for radios
+# Radio styling
 # -----------------------------
-st.markdown("""
+st.markdown(f"""
 <style>
-div[role='radiogroup'] label {
-    background:#fff; border:2px solid #cbd5e1; border-radius:10px;
-    padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
-}
-div[role='radiogroup'] label:hover { background:#e2e8f0; border-color:#94a3b8; }
-div[role='radiogroup'] label:has(input:checked) {
-    background:#2563eb !important; color:#fff !important;
-    border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
-}
-div[role='radiogroup'] { display:flex; gap:6px; flex-wrap:wrap; }
+#{PAGE_ID} div[role='radiogroup'] label {{
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
+}}
+#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,25 +60,21 @@ def _mode(col, fallback):
         return df[col].mode().iloc[0]
     return fallback
 
-default_age   = 60
-default_gluc  = round(_median('Glucose', 100.0), 1)
-default_height_cm = 150
-default_weight_kg = 80.0
-default_bmi = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
-default_hyp   = _mode('Hypertension', 1)      # 0/1 common
-default_hd    = _mode('Heart Disease', 0)     # 0/1
-default_work  = _mode('Work Type', 'Private')
-default_res   = _mode('Residence Type', 'Urban')
-default_smoke = _mode('Smoking Status', 'smokes')
+default_age        = int(round(_median('Age', 50)))
+default_gluc       = round(_median('Glucose', 100.0), 1)
+default_height_cm  = 150
+default_weight_kg  = 60.0
+default_bmi        = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
+default_hyp        = _mode('Hypertension', 1)       # 0/1 common
+default_hd         = _mode('Heart Disease', 0)      # 0/1
+default_work       = _mode('Work Type', 'Private')
+default_res        = _mode('Residence Type', 'Urban')
+default_smoke      = _mode('Smoking Status', 'never smoked')
+default_married    = int(_mode('Married', 0))
+married_default_ix = 1 if default_married == 1 else 0
 
-# Married default
-default_married = int(_mode('Married', 0))
-married_default_index = 1 if default_married == 1 else 0  # 0=No, 1=Yes
-
-# Sex options (Female is baseline when both dummies are 0)
-sex_opts = ['Female', 'Male', 'Other']
-default_sex = 'Female'
-
+sex_opts       = ['Female', 'Male', 'Other']
+default_sex    = 'Female'
 yes_no_display = ['No', 'Yes']
 work_type_opts = ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked']
 res_type_opts  = ['Urban', 'Rural']
@@ -87,13 +84,13 @@ def _yesno_from01(val01):
     return 'Yes' if str(val01) == '1' else 'No'
 
 # -----------------------------
-# Load trained model + threshold
+# Load trained model + threshold (NO expected_cols; pipeline handles preprocessing)
 # -----------------------------
 @st.cache_resource(show_spinner=True)
-def load_model_and_meta():
-    base = Path(__file__).resolve().parents[1]  # repo root
+def load_model_and_threshold():
+    base = Path(__file__).resolve().parents[1]
     model_path = base / "assets" / "trained_model_final.pickle"
-    meta_path  = base / "assets" / "model_meta.json"  # <-- define this
+    thr_path   = base / "assets" / "decision_threshold.json"
 
     if not model_path.exists():
         assets_list = [p.name for p in (base / "assets").glob("*")] if (base / "assets").exists() else []
@@ -102,66 +99,31 @@ def load_model_and_meta():
             f"Available under /assets: {assets_list}"
         )
 
-    # Load model (joblib -> pickle fallback)
+    # Load pipeline
     try:
-        model = joblib.load(model_path)
-    except Exception:
-        import pickle
         with open(model_path, "rb") as f:
             model = pickle.load(f)
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
+        raise
 
-    # Defaults
+    # Threshold
     decision_thr = 0.5
-    expected_cols = None
-
-    # Try meta.json
-    if meta_path.exists():
+    if thr_path.exists():
         try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            decision_thr  = float(meta.get("decision_threshold", meta.get("DECISION_THR", decision_thr)))
-            expected_cols = meta.get("expected_columns", meta.get("EXPECTED_COLS", expected_cols))
+            with open(thr_path, "r", encoding="utf-8") as f:
+                decision_thr = float(json.load(f).get("threshold", decision_thr))
         except Exception:
             pass
 
-    # Try to infer from pipeline
-    if expected_cols is None:
-        try:
-            expected_cols = list(getattr(model, "get_feature_names_out")())
-        except Exception:
-            expected_cols = None
+    return model, decision_thr
 
-    # Final fallback: use your known training schema (one-hot names)
-    if expected_cols is None:
-        expected_cols = [
-            # numeric/binary
-            "Age", "Hypertension", "Heart Disease", "Married", "Glucose", "BMI",
-            # sex dummies (Female baseline)
-            "Sex_Male", "Sex_Other",
-            # work type
-            "Work Type_Private", "Work Type_Self-employed", "Work Type_children",
-            "Work Type_Never_worked", "Work Type_Govt_job",
-            # residence
-            "Residence Type_Urban", "Residence Type_Rural",
-            # smoking
-            "Smoking?_formerly smoked", "Smoking?_never smoked",
-            "Smoking?_smokes", "Smoking?_Unknown",
-        ]
-
-    # Ensure it's a plain list
-    if not isinstance(expected_cols, list):
-        try:
-            expected_cols = list(expected_cols)
-        except Exception:
-            expected_cols = [str(c) for c in expected_cols]
-
-    return model, decision_thr, expected_cols
-
-# Ensures DF has all expected cols (missing -> 0) and correct order
-def align_to_expected(df_in: pd.DataFrame, expected_cols: list) -> pd.DataFrame:
-    for c in expected_cols:
-        if c not in df_in.columns:
-            df_in[c] = 0.0
-    return df_in[expected_cols]
+try:
+    model, DECISION_THR = load_model_and_threshold()
+except Exception as e:
+    st.error("Model failed to load. See details below.")
+    st.exception(e)
+    st.stop()
 
 # -----------------------------
 # Form
@@ -181,10 +143,7 @@ with st.form("patient_form"):
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
         sex = st.selectbox("Gender", sex_opts, index=sex_opts.index(default_sex))
-        married_disp = st.radio(
-            "Ever Married?", yes_no_display, horizontal=True,
-            index=married_default_index
-        )
+        married_disp = st.radio("Ever Married?", yes_no_display, horizontal=True, index=married_default_ix)
 
     with c2:
         work_type = st.selectbox(
@@ -197,8 +156,8 @@ with st.form("patient_form"):
         )
         glucose = st.number_input("Glucose (mg/dl)", min_value=0.0, value=default_gluc, step=0.1)
 
-        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=150, step=1, key="risk_height")
-        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=60, step=1, key="risk_weight")
+        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=default_height_cm, step=1, key="risk_height")
+        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=default_weight_kg, step=1, key="risk_weight")
         height_m = height_cm / 100.0
         bmi_value = float(weight_kg) / (height_m ** 2) if height_m > 0 else default_bmi
 
@@ -210,51 +169,13 @@ with st.form("patient_form"):
     submitted = st.form_submit_button("Predict")
 
 # -----------------------------
-# Helper: map form -> model input
+# Build raw input row (pipeline will encode)
 # -----------------------------
-def build_model_input(expected_cols,
-                      age, hypertension_disp, heart_disease_disp, sex,
-                      married_disp, work_type, residence_type, glucose, bmi, smoking):
+def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
+                          married_disp, work_type, residence_type, glucose, bmi, smoking):
     """
-    Build a single-row DataFrame matching the model training columns.
+    Returns a single-row DataFrame with RAW feature names that the pipeline expects.
     """
-    if expected_cols:
-        row = {col: 0.0 for col in expected_cols}
-
-        # numeric/binary
-        if "Age" in row:           row["Age"] = float(age)
-        if "Hypertension" in row:  row["Hypertension"] = 1.0 if hypertension_disp == "Yes" else 0.0
-        if "Heart Disease" in row: row["Heart Disease"] = 1.0 if heart_disease_disp == "Yes" else 0.0
-        if "Glucose" in row:       row["Glucose"] = float(glucose)
-        if "BMI" in row:           row["BMI"] = float(bmi)
-
-        # Married single column
-        if "Married" in row:       row["Married"] = 1.0 if married_disp == "Yes" else 0.0
-
-        # Sex dummies (Female baseline)
-        if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male"  else 0.0
-        if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
-
-        # Work Type
-        if "Work Type_Private" in row:       row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
-        if "Work Type_Self-employed" in row: row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
-        if "Work Type_children" in row:      row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
-        if "Work Type_Never_worked" in row:  row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
-        if "Work Type_Govt_job" in row:      row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
-
-        # Residence
-        if "Residence Type_Urban" in row:    row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
-        if "Residence Type_Rural" in row:    row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
-
-        # Smoking
-        if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
-        if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
-        if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
-        if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
-
-        return pd.DataFrame([row], columns=expected_cols)
-
-    # Fallback: minimal row
     return pd.DataFrame([{
         "Age": float(age),
         "Hypertension": 1.0 if hypertension_disp == "Yes" else 0.0,
@@ -262,6 +183,7 @@ def build_model_input(expected_cols,
         "Married": 1.0 if married_disp == "Yes" else 0.0,
         "Glucose": float(glucose),
         "BMI": float(bmi),
+        # raw categoricals; pipeline's transformers will one-hot encode these
         "Sex": sex,
         "Work Type": work_type,
         "Residence Type": residence_type,
@@ -329,8 +251,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
 # Predict on submit
 # -----------------------------
 if submitted:
-    X_user_raw = build_model_input(
-        EXPECTED_COLS,
+    X_user = build_model_input_raw(
         age=age,
         hypertension_disp=hypertension_disp,
         heart_disease_disp=heart_disease_disp,
@@ -343,19 +264,16 @@ if submitted:
         smoking=smoking
     )
 
-    # Always align & order columns for the model
-    X_user = align_to_expected(X_user_raw.copy(), EXPECTED_COLS)
-
     try:
         if hasattr(model, "predict_proba"):
             prob = float(model.predict_proba(X_user)[0][1])
+        elif hasattr(model, "decision_function"):
+            from scipy.special import expit
+            prob = float(expit(model.decision_function(X_user))[0])
         else:
-            # graceful fallback
-            if hasattr(model, "decision_function"):
-                from scipy.special import expit
-                prob = float(expit(model.decision_function(X_user))[0])
-            else:
-                prob = float(model.predict(X_user)[0])
+            # fallback for regressors or binary outputs
+            pred_raw = model.predict(X_user)[0]
+            prob = float(pred_raw) if isinstance(pred_raw, (int, float, np.floating)) else float(pred_raw == 1)
     except Exception as e:
         st.error("Prediction failed. See details below.")
         st.exception(e)
@@ -364,7 +282,6 @@ if submitted:
     pred = int(prob >= DECISION_THR)
 
     render_risk_gauge(prob * 100.0, title="Model-Estimated Stroke Risk", decision_thr=DECISION_THR)
-
     st.markdown(f"**Predicted probability:** `{prob:.3f}`")
     st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**Low stroke risk (0)**'}")
 
@@ -385,25 +302,8 @@ if submitted:
         'predicted': pred
     }
 
-    st.markdown(
-        """
-        <div style="
-            background-color:#f7fbff;
-            border-left:4px solid #1f77b4;
-            padding:12px 14px;
-            border-radius:8px;
-            margin-top:15px;
-            margin-bottom:25px;">
-            <b>Quick Read about the prediction</b><br><br>
-            • The gauge shows how likely the patient is to experience a stroke based on their personal health profile and risk factors.<br>
-            • The color zones indicate <b>low</b>, <b>moderate</b>, or <b>high</b> risk levels — helping to quickly identify patients who may need closer monitoring and immediate preventive measures.<br>
-            • The orange line represents the <b>decision threshold</b> used by the model to separate lower-risk from higher-risk cases.<br>
-            • This estimate is meant to <b>support clinical judgment</b> — it does not replace diagnosis, but helps prioritize prevention and follow-up actions.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.info("Prediction generated by the trained pipeline. The gauge reflects the predicted probability (0–100).")
 else:
     st.info("Fill the form and click **Predict** to see the model-estimated risk.")
 
-st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
