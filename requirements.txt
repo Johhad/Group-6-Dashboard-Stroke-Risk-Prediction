@@ -1,9 +1,12 @@
-jupyter==1.1.1
+# requirements.txt
 streamlit==1.46.1
-seaborn==0.13.2
-plotly-express==0.4.1
+pandas>=2.2
+numpy>=2.0
+scipy>=1.11
 scikit-learn==1.7.0
+imbalanced-learn==0.14.*
+plotly>=5.22
+seaborn==0.13.2
 shap==0.48.0
 watchdog==6.0.0
-scikit-learn==1.4.2
-imbalanced-learn==0.12.2
+jupyter==1.1.1
