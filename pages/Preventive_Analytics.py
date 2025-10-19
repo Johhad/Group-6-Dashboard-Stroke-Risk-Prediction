@@ -1,291 +1,308 @@
 # pages/preventive.py 
 import streamlit as st
-from pathlib import Path
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import json, pickle
 
-# ===== Page frame / styling =====
-PAGE_ID = "risk-page"
+PAGE_ID = "preventive-page"
 st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
 st.markdown(f"""
 <style>
 #{PAGE_ID} div[role='radiogroup'] label {{
-  background:#fff; border:2px solid #cbd5e1; border-radius:10px;
-  padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
 }}
-#{PAGE_ID} div[role='radiogroup'] label:hover {{
-  background:#e2e8f0; border-color:#94a3b8;
-}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
 #{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
-  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important;
-  box-shadow:0 0 4px rgba(37,99,235,.6);
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
 }}
-#{PAGE_ID} div[role='radiogroup'] {{
-  display:flex; gap:6px; flex-wrap:wrap;
-}}
+#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
 </style>
 """, unsafe_allow_html=True)
 
-try:
-    from utils.ui_safety import begin_page
-    begin_page("Risk Prediction 🧑‍⚕️")
-except Exception:
-    st.title("Risk Prediction 🧑‍⚕️")
 
+
+from utils.ui_safety import begin_page
+begin_page("Preventive Insights 🛡️")
+
+import pandas as pd
+import numpy as np
+import pickle, json, warnings
+from pathlib import Path
+import plotly.graph_objects as go
+import seaborn as sns
+import re
+
+#st.title("Preventive Insights 🛡️")
 st.markdown(
     """
     <p style='font-size:16px; color:#333; margin-top:-5px;'>
-       This page predicts stroke risk using the trained model based on the input features below.
+        Impact on predicted stroke probability based on patient data using <b>SHAP</b>.
     </p>
     """,
     unsafe_allow_html=True,
 )
 
-# ===== Data (for sensible defaults) =====
-@st.cache_data
-def load_data():
-    try:
-        return pd.read_csv("./jupyter-notebooks/processed_data.csv")
-    except Exception:
-        return pd.DataFrame()
+# ------------------ require prior submission ------------------
+st.subheader("Summary of Patient Input Data")
+if "rp_input" not in st.session_state:
+    st.warning("No patient input found. Please submit data on the **Risk Prediction** page first.")
+    st.stop()
+pt = st.session_state["rp_input"]
 
-df = load_data()
-
-def _median(col, fallback):
-    return float(df[col].median()) if col in df.columns and pd.api.types.is_numeric_dtype(df[col]) else fallback
-
-def _mode(col, fallback):
-    if col in df.columns and df[col].dropna().size:
-        return df[col].mode().iloc[0]
-    return fallback
-
-default_age   = int(round(_median('Age', 60)))
-default_gluc  = round(_median('Glucose', 100.0), 1)
-# BMI is the only body-size input now
-default_bmi   = round(_median('BMI', 27.0), 1)
-default_hyp   = _mode('Hypertension', 1)
-default_hd    = _mode('Heart Disease', 0)
-default_work  = _mode('Work Type', 'Private')
-default_res   = _mode('Residence Type', 'Urban')
-default_smoke = _mode('Smoking Status', 'smokes')
-default_married = int(_mode('Married', 0))
-married_default_index = 1 if default_married == 1 else 0
-
-sex_opts       = ['Female', 'Male', 'Other']
-yes_no_display = ['No', 'Yes']
-work_type_opts = ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked']
-res_type_opts  = ['Urban', 'Rural']
-smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
-
-def _yesno_from01(val01):  # helper for 0/1 defaults -> 'Yes'/'No'
-    return 'Yes' if str(val01) == '1' else 'No'
-
-# ===== Model loader (pipeline handles preprocessing) =====
-@st.cache_resource(show_spinner=True)
-def load_model_and_threshold():
-    base = Path(__file__).resolve().parents[1]
-    model_path = base / "assets" / "trained_model_final.pickle"
-    thr_path   = base / "assets" / "decision_threshold.json"
-
+# ------------------ load model + columns + threshold ------------------
+@st.cache_resource
+def load_model_and_meta():
+    model_path = Path("assets/trained_model_final.pickle")
+    thr_path   = Path("assets/decision_threshold.json")
     if not model_path.exists():
-        assets_list = [p.name for p in (base / "assets").glob("*")] if (base / "assets").exists() else []
-        raise FileNotFoundError(
-            f"Model file not found at: {model_path}\nAvailable under /assets: {assets_list}"
-        )
-
+        st.error(f"Trained model not found at: {model_path.resolve()}")
+        return None, 0.5, []
     with open(model_path, "rb") as f:
         model = pickle.load(f)
-
-    decision_thr = 0.5
+    thr = 0.5
     if thr_path.exists():
         try:
-            with open(thr_path, "r", encoding="utf-8") as f:
-                decision_thr = float(json.load(f).get("threshold", decision_thr))
+            with open(thr_path) as f:
+                thr = float(json.load(f)["threshold"])
         except Exception:
             pass
+    try:
+        expected_cols = list(model.named_steps["prep"].transformers_[0][2])
+    except Exception:
+        expected_cols = []
+    return model, thr, expected_cols
 
-    return model, decision_thr
-
-try:
-    model, DECISION_THR = load_model_and_threshold()
-except Exception as e:
-    st.error("Model failed to load. See details below.")
-    st.exception(e)
+model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
+if model is None or not EXPECTED_COLS:
     st.stop()
 
-# ===== Form (BMI only; types are consistent) =====
-with st.form("patient_form"):
-    st.markdown("### Enter Patient Data")
-    c1, c2 = st.columns(2)
+# ------------------ tiny background for SHAP ------------------
+@st.cache_data
+def load_background(n=60):
+    df = pd.read_csv("./jupyter-notebooks/processed_data.csv")
+    if len(df) > n:
+        df = df.sample(n, random_state=42).reset_index(drop=True)
+    return df
+bg_raw = load_background()
 
-    with c1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=int(default_age), step=1)
-        hypertension_disp = st.radio(
-            "Hypertension", yes_no_display, horizontal=True,
-            index=yes_no_display.index(_yesno_from01(default_hyp))
-        )
-        heart_disease_disp = st.radio(
-            "Heart Disease", yes_no_display, horizontal=True,
-            index=yes_no_display.index(_yesno_from01(default_hd))
-        )
-        sex = st.selectbox("Gender", sex_opts, index=sex_opts.index('Female'))
-        married_disp = st.radio("Ever Married?", yes_no_display, horizontal=True, index=married_default_index)
+# ------------------ helpers (match Risk page encoding) ------------------
+def build_model_input(expected_cols,
+                    age, sex, married, hypertension, heart_disease,
+                    work_type, residence_type, glucose, bmi, smoking):
+    row = {col: 0.0 for col in expected_cols}
+    if "Age" in row:           row["Age"] = float(age)
+    if "Hypertension" in row:  row["Hypertension"] = float(hypertension)
+    if "Heart Disease" in row: row["Heart Disease"] = float(heart_disease)
+    if "Married" in row:       row["Married"] = float(married)           # <— NEW (single binary column)
+    if "Glucose" in row:       row["Glucose"] = float(glucose)
+    if "BMI" in row:           row["BMI"] = float(bmi)
 
-    with c2:
-        work_type = st.selectbox(
-            "Work Type", work_type_opts,
-            index=work_type_opts.index(default_work) if default_work in work_type_opts else 0
-        )
-        residence_type = st.selectbox(
-            "Residence Type", res_type_opts,
-            index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
-        )
+    if "Sex_Male" in row:      row["Sex_Male"]  = 1.0 if sex == "Male" else 0.0
+    if "Sex_Other" in row:     row["Sex_Other"] = 1.0 if sex == "Other" else 0.0
 
-        glucose = st.number_input(
-            "Glucose (mg/dl)",
-            min_value=0.0, max_value=1000.0,
-            value=float(default_gluc), step=0.1
-        )
+    if "Work Type_Private" in row:         row["Work Type_Private"] = 1.0 if work_type == "Private" else 0.0
+    if "Work Type_Self-employed" in row:   row["Work Type_Self-employed"] = 1.0 if work_type == "Self-employed" else 0.0
+    if "Work Type_NA/underage" in row:     row["Work Type_children"] = 1.0 if work_type == "children" else 0.0
+    if "Work Type_Never_worked" in row:    row["Work Type_Never_worked"] = 1.0 if work_type == "Never_worked" else 0.0
+    if "Work Type_Govt_job" in row:        row["Work Type_Govt_job"] = 1.0 if work_type == "Govt_job" else 0.0
 
-        # ✅ BMI: single float input (no height/weight on this page)
-        bmi_value = st.number_input(
-            "BMI",
-            min_value=5.0, max_value=80.0,
-            value=float(default_bmi), step=0.1
-        )
+    if "Residence Type_Urban" in row:      row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
+    if "Residence Type_Rural" in row:      row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
 
-        smoking = st.selectbox(
-            "Smoking Status", smoke_opts,
-            index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
-        )
+    if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
+    if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]  = 1.0 if smoking == "never smoked"  else 0.0
+    if "Smoking?_smokes" in row:           row["Smoking?_smokes"]        = 1.0 if smoking == "smokes"         else 0.0
+    if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]       = 1.0 if smoking == "Unknown"        else 0.0
+    return pd.DataFrame([row], columns=expected_cols)
 
-    submitted = st.form_submit_button("Predict")
+def build_bg_matrix(expected_cols, df_raw):
+    recs = []
+    for _, r in df_raw.iterrows():
+        age  = float(r.get("Age", 50))
+        sex  = r.get("Sex", "Female") if pd.notna(r.get("Sex", "Female")) else "Female"
+        married = int(r.get("Married", 0))  # <— NEW
+        hyp  = int(r.get("Hypertension", 0))
+        hd   = int(r.get("Heart Disease", 0))
+        work = r.get("Work Type", "Private")
+        res  = r.get("Residence Type", "Urban")
+        glu  = float(r.get("Glucose", 100))
+        bmi  = float(r.get("BMI", 25))
+        smk  = r.get("Smoking Status", "never smoked")
+        recs.append(build_model_input(
+            expected_cols, age, sex, married, hyp, hd, work, res, glu, bmi, smk
+        ))
+    return pd.concat(recs, ignore_index=True)
 
-# ===== Build raw input row (pipeline will encode) =====
-def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
-                          married_disp, work_type, residence_type, glucose, bmi, smoking):
-    return pd.DataFrame([{
-        "Age": float(age),
-        "Hypertension": 1.0 if hypertension_disp == "Yes" else 0.0,
-        "Heart Disease": 1.0 if heart_disease_disp == "Yes" else 0.0,
-        "Married": 1.0 if married_disp == "Yes" else 0.0,
-        "Glucose": float(glucose),
-        "BMI": float(bmi),
-        # raw categoricals; your sklearn Pipeline should handle OHE
-        "Sex": sex,
-        "Work Type": work_type,
-        "Residence Type": residence_type,
-        "Smoking?": smoking,
-    }])
+# ------------------ build patient row (no risk display here) ------------------
+sex_val = pt.get("Sex", "Female")
+married_val = int(pt.get("Married", 0))  # from rp_input
+X_pt = build_model_input(
+    EXPECTED_COLS,
+    age=pt["Age"],
+    sex=sex_val,
+    married=married_val,
+    hypertension=int(pt.get("Hypertension", 0)),
+    heart_disease=int(pt.get("Heart Disease", 0)),
+    work_type=pt["Work Type"],
+    residence_type=pt["Residence Type"],
+    glucose=pt["Glucose"],
+    bmi=pt["BMI"],
+    smoking=pt["Smoking Status"],
+)
 
-# ===== Gauge helpers =====
-def band_and_color(score: float, thr_pct: float = 50.0):
-    if score < min(33.0, thr_pct * 0.66):
-        return "Low", "#2ca02c"
-    elif score < max(66.0, thr_pct):
-        return "Moderate", "#ff7f0e"
-    return "High", "#d62728"
+# We still compute prob internally for SHAP baseline, but do NOT show it on top.
+risk_prob = float(model.predict_proba(X_pt)[0, 1])
 
-def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: float = 0.5):
-    band, color = band_and_color(score, thr_pct=decision_thr * 100)
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; gap:12px; margin: 6px 0 8px 0;">
-            <h3 style="margin:0;">{title}</h3>
-            <span style="
-                display:inline-block; padding:6px 12px; border-radius:999px;
-                background:{color}1A; color:{color}; font-weight:600; font-size:0.95rem;">
-                {band} Risk • {score:.0f}/100
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True
+# ------------------ TOP: compact patient summary (no risk/threshold) ------------------
+# High-contrast badges so it doesn’t look messy or spaced-out
+st.markdown("""
+<style>
+.summary-card {
+background: #ffffff;
+border: 1px solid #dce2ea;
+border-radius: 14px;
+padding: 12px 12px 6px 12px;
+margin: 4px 0 10px 0;
+}
+.summary-grid {
+display: flex; flex-wrap: wrap; gap: 8px;
+}
+.badge {
+display: inline-flex; align-items: center; gap: 6px;
+padding: 6px 10px;
+border-radius: 999px;
+border: 1px solid #cbd5e1;
+background: #f8fafc;
+color: #0f172a; font-weight: 600; font-size: 0.92rem;
+}
+.badge .label {
+opacity: 0.7; font-weight: 500;
+}
+</style>
+""", unsafe_allow_html=True)
+
+def pill(label, value):
+    return f"""<span class="badge"><span class="label">{label}</span> {value}</span>"""
+
+summary_html = f"""
+<div class="summary-card">
+<div class="summary-grid">
+    {pill("Age", pt['Age'])}
+    {pill("Sex", sex_val)}
+    {pill("Married", "Yes" if married_val==1 else "No")}
+    {pill("Hypertension", "Yes" if int(pt.get("Hypertension",0))==1 else "No")}
+    {pill("Heart disease", "Yes" if int(pt.get("Heart Disease",0))==1 else "No")}
+    {pill("BMI", f"{float(pt['BMI']):.1f}")}
+    {pill("Glucose", f"{float(pt['Glucose']):.1f}")}
+    {pill("Residence", pt['Residence Type'])}
+    {pill("Work", pt['Work Type'])}
+    {pill("Smoking", pt['Smoking Status'])}
+</div>
+</div>
+"""
+st.markdown(summary_html, unsafe_allow_html=True)
+
+# ------------------ SHAP (horizontal bars) ------------------
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+import shap
+
+X_bg = build_bg_matrix(EXPECTED_COLS, bg_raw)
+bg   = X_bg.sample(min(60, len(X_bg)), random_state=42).values
+
+f = lambda X: model.predict_proba(pd.DataFrame(X, columns=EXPECTED_COLS))[:, 1]
+explainer = shap.KernelExplainer(f, bg)
+phi = explainer.shap_values(X_pt.values, nsamples=200)
+shap_values = phi[1].ravel() if isinstance(phi, list) else np.array(phi).ravel()
+
+# ---- Top K + "Other features" (no baseline/prediction bars) ----
+TOP_K = 10
+order = np.argsort(-np.abs(shap_values))
+top_idx = order[:TOP_K]
+other_val = shap_values[order[TOP_K:]].sum() if len(order) > TOP_K else 0.0
+
+labels = [EXPECTED_COLS[i] for i in top_idx]
+vals   = [shap_values[i] for i in top_idx]
+if abs(other_val) > 0:
+    labels.append("Other features")
+    vals.append(other_val)
+
+labels, vals = labels[::-1], vals[::-1]
+colors = ["#d62728" if v > 0 else "#2ca02c" for v in vals]  # red ↑risk, green ↓risk
+
+st.subheader("Top contributors (patient-specific)")
+c1, c2 = st.columns([1,1])
+
+with c1:
+    fig = go.Figure()
+    fig.add_bar(
+        x=vals,
+        y=labels,
+        orientation="h",
+        marker_color=colors,
+        hovertemplate="<b>%{y}</b><br>SHAP: %{x:.3f}<extra></extra>",
     )
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=score,
-        number={'suffix': "/100", 'font': {'size': 46}},
-        gauge={
-            'shape': "angular",
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#888"},
-            'bar': {'color': color, 'thickness': 0.25},
-            'bgcolor': "rgba(0,0,0,0)",
-            'steps': [
-                {'range': [0, 33], 'color': '#e8f5e9'},
-                {'range': [33, 66], 'color': '#fff3e0'},
-                {'range': [66, 100], 'color': '#ffebee'}
-            ],
-            'threshold': {'line': {'color': color, 'width': 4}, 'thickness': 0.75, 'value': score}
-        },
-        title={'text': ""}
-    ))
+
+    # --- centered labels as annotations ---
+    # choose readable text color (white on long bars; dark gray on tiny bars)
+    threshold = 0.018  # tweak if needed
+    for y, v, col in zip(labels, vals, colors):
+        txt = f"{v:+.3f}"
+        text_color = "white" if abs(v) >= threshold else "#2b2b2b"
+        # a subtle pill background improves readability on very small bars
+        bg = col if abs(v) >= threshold else None
+
+        fig.add_annotation(
+            x=v / 2,                # center of the bar (works for + and -)
+            y=y,
+            text=txt,
+            showarrow=False,
+            xanchor="center",
+            yanchor="middle",
+            font=dict(size=12, color=text_color, family="Arial"),
+            bgcolor=bg,             # only on longer bars
+            bordercolor=bg,
+            borderpad=2,
+            opacity=0.95 if bg else 1.0,
+        )
+
+    # zero line
+    fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="#666")
+
+    # a little padding so labels never get clipped
+    pad = max(abs(min(vals)), abs(max(vals))) * 0.10
     fig.update_layout(
-        margin=dict(t=10, b=0, l=10, r=10),
-        height=320,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(size=14)
-    )
-    fig.add_annotation(
-        text=f"Decision threshold ≈ {decision_thr:.3f}",
-        x=0.5, y=0.90, showarrow=False,
-        font=dict(size=14, color="#666")
+        height=600,
+        margin=dict(t=40, l=80, r=40, b=40),
+        xaxis_title="SHAP value (impact on P(stroke))",
+        yaxis_title="",
+        showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(
+            tickfont=dict(size=13),
+            range=[min(0, min(vals)) - pad, max(0, max(vals)) + pad],
+        ),
+        yaxis=dict(tickfont=dict(size=13)),
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ===== Predict on submit =====
-if submitted:
-    X_user = build_model_input_raw(
-        age=age,
-        hypertension_disp=hypertension_disp,
-        heart_disease_disp=heart_disease_disp,
-        sex=sex,
-        married_disp=married_disp,
-        work_type=work_type,
-        residence_type=residence_type,
-        glucose=glucose,
-        bmi=bmi_value,
-        smoking=smoking
+with c2:
+    st.markdown(
+        f"""
+**How to read this**
+
+This chart shows which patient factors most strongly influenced the stroke-risk prediction for this specific person.
+Each bar represents how much a factor increased or decreased the predicted probability of stroke.
+ - Red bars → Factors that increase the predicted risk of stroke for this patient.
+ - Green bars → Factors that reduce the predicted risk of stroke for this patient.
+ - The longer the bar, the stronger the effect on the prediction.
+
+Example - A patient with Glucose level as 190 mg/dl and BMI as 28
+
+Glucose (+0.070): Having high glucose than normal makes the model to predict this patient with increase probability of stroke.
+
+BMI (–0.047): Not having too high BMI values of the patient reduces the predicted stroke risk slightly for him or her.
+"""
     )
 
-    try:
-        if hasattr(model, "predict_proba"):
-            prob = float(model.predict_proba(X_user)[0][1])
-        elif hasattr(model, "decision_function"):
-            from scipy.special import expit
-            prob = float(expit(model.decision_function(X_user))[0])
-        else:
-            pred_raw = model.predict(X_user)[0]
-            prob = float(pred_raw) if isinstance(pred_raw, (int, float, np.floating)) else float(pred_raw == 1)
-    except Exception as e:
-        st.error("Prediction failed. See details below.")
-        st.exception(e)
-        st.stop()
-
-    pred = int(prob >= DECISION_THR)
-
-    render_risk_gauge(prob * 100.0, title="Model-Estimated Stroke Risk", decision_thr=DECISION_THR)
-    st.markdown(f"**Predicted probability:** `{prob:.3f}`")
-    st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**Low stroke risk (0)**'}")
-
-    # NOTE: No height/weight in the session payload now — Preventive page does not need them.
-    st.session_state['rp_input'] = {
-        'Age': age,
-        'Sex': sex,
-        'Married': 1 if married_disp == 'Yes' else 0,
-        'Hypertension': 1 if hypertension_disp == 'Yes' else 0,
-        'Heart Disease': 1 if heart_disease_disp == 'Yes' else 0,
-        'Work Type': work_type,
-        'Residence Type': residence_type,
-        'Glucose': float(glucose),
-        'BMI': float(bmi_value),
-        'Smoking Status': smoking,
-        'pred_proba': prob,
-        'predicted': pred
-    }
-else:
-    st.info("Fill the form and click **Predict** to see the model-estimated risk.")
+st.info("Note: These SHAP values explain the model’s probability for this patient only. It is important to note that these values are not general risk factors.")
 
 st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
