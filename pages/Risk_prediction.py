@@ -1,4 +1,4 @@
-# risk_prediction.py
+# pages/Risk_prediction.py
 import streamlit as st
 from pathlib import Path
 import pandas as pd
