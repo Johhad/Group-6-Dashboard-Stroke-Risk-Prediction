@@ -288,6 +288,25 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
         font=dict(size=14, color="#666")
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown(
+        """
+        <div style="
+            background-color:#f7fbff;
+            border-left:4px solid #1f77b4;
+            padding:12px 14px;
+            border-radius:8px;
+            margin-top:15px;
+            margin-bottom:25px;">
+            <b>Quick Read (for healthcare workers)</b><br><br>
+            • The gauge shows how likely the patient is to experience a stroke based on their personal health profile and risk factors.<br>
+            • The color zones indicate <b>low</b>, <b>moderate</b>, or <b>high</b> risk levels — helping to quickly identify patients who may need closer monitoring.<br>
+            • The orange line represents the <b>decision threshold</b> used by the model to separate lower-risk from higher-risk cases.<br>
+            • This estimate is meant to <b>support clinical judgment</b> — it does not replace diagnosis, but helps prioritize prevention and follow-up actions.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # ---------- Predict ----------
 if submitted:
