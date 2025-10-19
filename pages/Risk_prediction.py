@@ -91,10 +91,10 @@ def _yesno_from01(val01):
 # -----------------------------
 @st.cache_resource(show_spinner=True)
 def load_model_and_meta():
-    base = Path(__file__).resolve().parents[1]  # repo root (folder with Dashboard.py)
+    base = Path(__file__).resolve().parents[1]  # repo root
     model_path = base / "assets" / "trained_model_final.pickle"
+    meta_path  = base / "assets" / "model_meta.json"  # <-- define this
 
-    # --- Check existence ---
     if not model_path.exists():
         assets_list = [p.name for p in (base / "assets").glob("*")] if (base / "assets").exists() else []
         raise FileNotFoundError(
@@ -102,7 +102,7 @@ def load_model_and_meta():
             f"Available under /assets: {assets_list}"
         )
 
-    # --- Load model ---
+    # Load model (joblib -> pickle fallback)
     try:
         model = joblib.load(model_path)
     except Exception:
@@ -110,10 +110,11 @@ def load_model_and_meta():
         with open(model_path, "rb") as f:
             model = pickle.load(f)
 
-    # --- Default values ---
-    decision_thr, expected_cols = 0.5, None
+    # Defaults
+    decision_thr = 0.5
+    expected_cols = None
 
-    # --- Optional meta info ---
+    # Try meta.json
     if meta_path.exists():
         try:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -122,23 +123,45 @@ def load_model_and_meta():
         except Exception:
             pass
 
-    # --- Try to get feature names from pipeline if not found ---
+    # Try to infer from pipeline
     if expected_cols is None:
         try:
-            expected_cols = list(model.get_feature_names_out())
+            expected_cols = list(getattr(model, "get_feature_names_out")())
         except Exception:
             expected_cols = None
 
+    # Final fallback: use your known training schema (one-hot names)
+    if expected_cols is None:
+        expected_cols = [
+            # numeric/binary
+            "Age", "Hypertension", "Heart Disease", "Married", "Glucose", "BMI",
+            # sex dummies (Female baseline)
+            "Sex_Male", "Sex_Other",
+            # work type
+            "Work Type_Private", "Work Type_Self-employed", "Work Type_children",
+            "Work Type_Never_worked", "Work Type_Govt_job",
+            # residence
+            "Residence Type_Urban", "Residence Type_Rural",
+            # smoking
+            "Smoking?_formerly smoked", "Smoking?_never smoked",
+            "Smoking?_smokes", "Smoking?_Unknown",
+        ]
+
+    # Ensure it's a plain list
+    if not isinstance(expected_cols, list):
+        try:
+            expected_cols = list(expected_cols)
+        except Exception:
+            expected_cols = [str(c) for c in expected_cols]
+
     return model, decision_thr, expected_cols
 
-
-# <- define globals used later
-try:
-    model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
-except Exception as e:
-    st.error("Model failed to load. See details below.")
-    st.exception(e)
-    st.stop()
+# Ensures DF has all expected cols (missing -> 0) and correct order
+def align_to_expected(df_in: pd.DataFrame, expected_cols: list) -> pd.DataFrame:
+    for c in expected_cols:
+        if c not in df_in.columns:
+            df_in[c] = 0.0
+    return df_in[expected_cols]
 
 # -----------------------------
 # Form
@@ -306,7 +329,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
 # Predict on submit
 # -----------------------------
 if submitted:
-    X_user = build_model_input(
+    X_user_raw = build_model_input(
         EXPECTED_COLS,
         age=age,
         hypertension_disp=hypertension_disp,
@@ -319,6 +342,9 @@ if submitted:
         bmi=bmi_value,
         smoking=smoking
     )
+
+    # Always align & order columns for the model
+    X_user = align_to_expected(X_user_raw.copy(), EXPECTED_COLS)
 
     try:
         if hasattr(model, "predict_proba"):
