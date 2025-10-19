@@ -297,7 +297,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
             border-radius:8px;
             margin-top:15px;
             margin-bottom:25px;">
-            <b>Quick Read (for healthcare workers)</b><br><br>
+            <b>Quick Read </b><br><br>
             • The gauge shows how likely the patient is to experience a stroke based on their personal health profile and risk factors.<br>
             • The color zones indicate <b>low</b>, <b>moderate</b>, or <b>high</b> risk levels — helping to quickly identify patients who may need closer monitoring.<br>
             • The orange line represents the <b>decision threshold</b> used by the model to separate lower-risk from higher-risk cases.<br>
