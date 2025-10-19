@@ -165,49 +165,56 @@ with st.form("patient_form"):
     st.markdown("### Enter Patient Data")
 
     c1, c2 = st.columns(2)
+
     with c1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=default_age, step=1)
+        # Age: keep as ints everywhere
+        age = st.number_input("Age", min_value=1, max_value=120, value=int(default_age), step=1)
+
         hypertension_disp = st.radio(
-            "Hypertension", yes_no_display, horizontal=True,
-            index=yes_no_display.index(_yesno_from01(default_hyp))
+            "Hypertension", ['No', 'Yes'], horizontal=True,
+            index=['No', 'Yes'].index(_yesno_from01(default_hyp))
         )
         heart_disease_disp = st.radio(
-            "Heart Disease", yes_no_display, horizontal=True,
-            index=yes_no_display.index(_yesno_from01(default_hd))
+            "Heart Disease", ['No', 'Yes'], horizontal=True,
+            index=['No', 'Yes'].index(_yesno_from01(default_hd))
         )
-        sex = st.selectbox("Gender", sex_opts, index=sex_opts.index(default_sex))
-        married_disp = st.radio(
-            "Ever Married?", yes_no_display, horizontal=True,
-            index=married_default_index
-        )
+        sex = st.selectbox("Gender", ['Female', 'Male', 'Other'], index=['Female', 'Male', 'Other'].index(default_sex))
+        married_disp = st.radio("Ever Married?", ['No', 'Yes'], horizontal=True, index=married_default_ix)
 
     with c2:
         work_type = st.selectbox(
-            "Work Type", work_type_opts,
-            index=work_type_opts.index(default_work) if default_work in work_type_opts else 0
+            "Work Type", ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked'],
+            index=(['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked'].index(default_work)
+                   if default_work in ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked'] else 0)
         )
         residence_type = st.selectbox(
-            "Residence Type", res_type_opts,
-            index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
+            "Residence Type", ['Urban', 'Rural'],
+            index=(['Urban', 'Rural'].index(default_res) if default_res in ['Urban', 'Rural'] else 0)
         )
-        glucose = st.number_input("Glucose (mg/dl)", min_value=0.0, value=default_gluc, step=0.1)
-        
-        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=150, step=1, key="risk_height")
-        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=60, step=1, key="risk_weight")
-        height_m = height_cm / 100
-        bmi_value = weight_kg / (height_m ** 2)
 
-        if height_cm and weight_kg:
-            height_m = height_cm / 100.0
-            bmi_value = float(weight_kg) / (height_m ** 2) if height_m > 0 else default_bmi
-        else:
-            bmi_value = default_bmi
-            
+        # Glucose: floats everywhere
+        glucose = st.number_input("Glucose (mg/dl)", min_value=0.0, max_value=1000.0,
+                                  value=float(default_gluc), step=0.1)
+
+        # Height: use ints everywhere (if you prefer floats, make all 4 floats)
+        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300,
+                                    value=int(default_height_cm), step=1, key="risk_height")
+
+        # Weight: value is float → make min/max/step floats too to avoid mixed types
+        weight_kg = st.number_input("Weight (kg)", min_value=10.0, max_value=300.0,
+                                    value=float(default_weight_kg), step=1.0, key="risk_weight")
+
+        # Compute BMI safely
+        height_m = height_cm / 100.0
+        bmi_value = float(weight_kg) / (height_m ** 2) if height_m > 0 else float(default_bmi)
+
         smoking = st.selectbox(
-            "Smoking Status", smoke_opts,
-            index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
+            "Smoking Status", ['formerly smoked', 'never smoked', 'smokes', 'Unknown'],
+            index=(['formerly smoked', 'never smoked', 'smokes', 'Unknown'].index(default_smoke)
+                   if default_smoke in ['formerly smoked', 'never smoked', 'smokes', 'Unknown'] else 1)
         )
 
+    # ✅ The submit button MUST be inside the with st.form(...) block
     submitted = st.form_submit_button("Predict")
 
 # -----------------------------
@@ -335,14 +342,12 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
 # Predict on submit
 # -----------------------------
 if submitted:
-    # Build model-ready row (now includes Married)
-    X_user = build_model_input(
-        EXPECTED_COLS,
+    X_user = build_model_input_raw(
         age=age,
         hypertension_disp=hypertension_disp,
         heart_disease_disp=heart_disease_disp,
         sex=sex,
-        married_disp=married_disp,   # NEW
+        married_disp=married_disp,
         work_type=work_type,
         residence_type=residence_type,
         glucose=glucose,
