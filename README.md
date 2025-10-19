@@ -189,9 +189,11 @@ This tool is for educational and screening purposes only. It should not replace 
 1. Create the environment with python -m venv env
 2. Activate the virtual environment for Python
   - If using Mac or Linux, type the command: source env/bin/activate
-  - If using Windows:
+  - If using Windows:.\env\Scripts\activate.bat 
+    - [Windows command prompt] .\env\Scripts\activate.bat 
+   - [in Windows PowerShell] .\env\Scripts\Activate.ps1
   - First, set the Default Terminal Profile to CMD Terminal
-  - Then, type in the CMD terminal: .\env\Scripts\activate.bat
+  - Then, type in the CMD terminal: .\env\Scripts\activate.bat or .\env\Scripts\Activate.ps1
 3. Make sure that your terminal is in the environment (env) not in the global Python installation
 4. Install required packages pip install -r ./requirements.txt
 5. Check that everything is ok running streamlit hello
