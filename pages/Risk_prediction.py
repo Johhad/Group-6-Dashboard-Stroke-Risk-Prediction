@@ -232,7 +232,17 @@ def band_and_color(score: float, thr_pct: float = 50.0):
     return "High", "#d62728"
 
 def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: float = 0.5):
+    score = float(score)  # make sure it’s numeric
+    # label & color
+    def band_and_color(s: float, thr_pct: float = 50.0):
+        if s < min(33.0, thr_pct * 0.66):
+            return "Low", "#2ca02c"
+        elif s < max(66.0, thr_pct):
+            return "Moderate", "#ff7f0e"
+        return "High", "#d62728"
+
     band, color = band_and_color(score, thr_pct=decision_thr * 100)
+
     st.markdown(
         f"""
         <div style="display:flex; align-items:center; gap:12px; margin: 6px 0 8px 0;">
@@ -246,11 +256,12 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
         """,
         unsafe_allow_html=True
     )
+
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
         number={'suffix': "/100", 'font': {'size': 46}},
-        gauge={{
+        gauge={
             'shape': "angular",
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#888"},
             'bar': {'color': color, 'thickness': 0.25},
@@ -261,7 +272,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
                 {'range': [66, 100], 'color': '#ffebee'}
             ],
             'threshold': {'line': {'color': color, 'width': 4}, 'thickness': 0.75, 'value': score}
-        }},
+        },
         title={'text': ""}
     ))
     fig.update_layout(
