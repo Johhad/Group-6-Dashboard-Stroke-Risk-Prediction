@@ -1,4 +1,4 @@
-#Diagnostic page
+# pages/Diagnostic_Analytics.py
 
 import streamlit as st
 
@@ -20,7 +20,7 @@ st.markdown(f"""
 from utils.ui_safety import begin_page
 begin_page("Diagnostic Analytics 🩺")
 
-# Clearning up the unnecessaery data
+# Clear any prior patient payload so this page stays independent
 if 'rp_input' in st.session_state:
     del st.session_state['rp_input']
 
@@ -28,22 +28,18 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-import matplotlib.pyplot as plt
-import seaborn as sns
-import re
-import plotly.express as px
-import plotly.graph_objects as go
 
-#st.title("🩺 Diagnostic Analytics")
 st.caption("Diagnostic analysis of the dataset used in this project.")
 
 ART = Path("artifacts/diagnostic")
 DATA_PATH = "./jupyter-notebooks/processed_data.csv"
-TARGET = "Stroke"  # exact name only
+TARGET = "Stroke"  # exact name
 
 # ----------------------------
 # Data loader (cached once)
@@ -53,7 +49,7 @@ def load_processed(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     df = df.reset_index(drop=True)
     df.columns = [c.strip() for c in df.columns]
-    # 🔽 remove any auto-saved index columns like "Unnamed: 0", "unnamed: 0", etc.
+    # remove any auto-saved index columns like "Unnamed: 0"
     df = df.loc[:, ~df.columns.str.match(r"^Unnamed", case=False)]
     # Treat bools as numeric for correlation (cast to float)
     bool_cols = df.select_dtypes(include=["bool"]).columns
@@ -76,7 +72,7 @@ def id_like_columns(columns):
     return out
 
 # =========================================
-# Interactive Top-K correlation heatmap
+# ORIGINAL seaborn/matplotlib Top-K correlation heatmap
 # =========================================
 st.subheader(f"Correlation with {TARGET} — Top-K Heatmap")
 
@@ -117,40 +113,30 @@ else:
                 sub_df = pd.concat([y_corr.rename(TARGET), X_corr[top_feats]], axis=1)
                 sub_corr = sub_df.corr()
 
-                # ------- Build interactive lower-tri heatmap with Plotly -------
-                # mask upper triangle
-                mat = sub_corr.values.astype(float).copy()
-                iu = np.triu_indices_from(mat, k=1)
-                mat[iu] = np.nan
+                # ---- FULL-WIDTH but compact height ----
+                plt.rcParams.update({
+                    "font.size": 9,
+                    "axes.titlesize": 11,
+                    "axes.labelsize": 9,
+                })
+                fig_w = 8.5   # wide enough to fit full page
+                fig_h = min(4.5, 2.0 + 0.22 * (len(top_feats) + 1))  # adaptively short
 
-                # optional bounds to match your previous seaborn style
-                vmin, vmax = -0.6, 0.6
-                # height scales with matrix size (keeps it compact but readable)
-                h = int(np.clip(160 + 32 * (len(top_feats) + 1), 280, 700))
+                fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=110)
+                mask = np.triu(np.ones_like(sub_corr, dtype=bool), k=1)
+                sns.heatmap(
+                    sub_corr, mask=mask, annot=True, fmt=".2f",
+                    cmap="coolwarm", vmin=-0.6, vmax=0.6,
+                    square=False, cbar_kws={"shrink": 0.75},
+                    ax=ax, annot_kws={"size": 8}
+                )
+                ax.set_title(f"Top {len(top_feats)} correlations with {TARGET}", pad=8)
+                plt.xticks(rotation=45, ha="right")
+                plt.tight_layout()
 
-                fig_heat = go.Figure(
-                    data=go.Heatmap(
-                        z=mat,
-                        x=sub_corr.columns,
-                        y=sub_corr.index,
-                        colorscale="RdBu",
-                        zmin=vmin, zmax=vmax, zmid=0,
-                        colorbar=dict(title="corr", len=0.8),
-                        hovertemplate=(
-                            "<b>%{y}</b> vs <b>%{x}</b><br>"
-                            "corr = %{z:.2f}<extra></extra>"
-                        ),
-                    )
-                )
-                # mimic seaborn orientation (target on top-left)
-                fig_heat.update_yaxes(autorange="reversed")
-                fig_heat.update_layout(
-                    title=f"Top {len(top_feats)} correlations with {TARGET}",
-                    height=h,
-                    margin=dict(t=48, b=20, l=60, r=20),
-                    xaxis=dict(tickangle=45),
-                )
-                st.plotly_chart(fig_heat, use_container_width=True, key="corr_heatmap")
+                # Full page width display, balanced height
+                st.pyplot(fig, clear_figure=True, use_container_width=True)
+                plt.close(fig)
 
 st.markdown(
     """
@@ -238,6 +224,7 @@ else:
     km = KMeans(n_clusters=k, n_init="auto", random_state=42)
     raw_labels = km.fit_predict(X_std)
 
+    # Align cluster IDs to stroke/no-stroke by majority label
     rates = []
     for cl in range(k):
         mask = (raw_labels == cl)
@@ -249,6 +236,7 @@ else:
 
     sil = silhouette_score(X_std, raw_labels) if len(X_std) > k else np.nan
 
+    # PCA for visualization
     pca = PCA(n_components=2, random_state=42)
     XY = pca.fit_transform(X_std)
     plot_df = pd.DataFrame(XY, columns=["PC1", "PC2"], index=X_all.index)
@@ -284,7 +272,7 @@ st.markdown(
         • The model automatically grouped patients into <b>two main clusters</b>: one “<b>stroke-like</b>” (red) and one “<b>no-stroke-like</b>” (blue).<br>
         • Most stroke cases appear inside the red cluster, meaning their clinical profiles share similar patterns.<br>
         • A few overlaps exist where some non-stroke patients fall into the stroke-like cluster — this indicates borderline or at-risk individuals.<br>
-        • The <b>silhouette score of 0.174</b> shows modest separation — clusters are distinguishable but not completely distinct.<br>
+        • The <b>silhouette score</b> shows modest separation — clusters are distinguishable but not completely distinct.<br>
         • Overall, clustering highlights two broad risk groups that can guide early screening or targeted intervention strategies.
     </div>
     """,
