@@ -1,0 +1,13 @@
+PR AUC: 0.0749
+ROC AUC: 0.6319
+Optimal threshold: 0.1609
+
+=== CLASSIFICATION REPORT ===
+              precision    recall  f1-score   support
+
+           0     0.9716    0.6337    0.7671       972
+           1     0.0825    0.6400    0.1461        50
+
+    accuracy                         0.6341      1022
+   macro avg     0.5270    0.6369    0.4566      1022
+weighted avg     0.9281    0.6341    0.7367      1022
