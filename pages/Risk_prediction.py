@@ -6,7 +6,7 @@ import numpy as np
 import plotly.graph_objects as go
 import json, pickle
 
-# ========== Page header / styling ==========
+# ===== Page frame / styling =====
 PAGE_ID = "risk-page"
 st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
 st.markdown(f"""
@@ -43,33 +43,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ========== Helpers to prevent mixed-type inputs ==========
-def to_float(x): return float(x) if x is not None else 0.0
-def to_int(x): return int(x) if x is not None else 0
-
-def ni_float(label, min_v, max_v, value, step, **kwargs):
-    # all args must be float to avoid StreamlitMixedNumericTypesError
-    return st.number_input(
-        label,
-        min_value=float(min_v),
-        max_value=float(max_v),
-        value=float(value),
-        step=float(step),
-        **kwargs
-    )
-
-def ni_int(label, min_v, max_v, value, step, **kwargs):
-    # all args must be int to avoid StreamlitMixedNumericTypesError
-    return st.number_input(
-        label,
-        min_value=int(min_v),
-        max_value=int(max_v),
-        value=int(value),
-        step=int(step),
-        **kwargs
-    )
-
-# ========== Data (for sensible defaults) ==========
+# ===== Data (for sensible defaults) =====
 @st.cache_data
 def load_data():
     try:
@@ -87,18 +61,16 @@ def _mode(col, fallback):
         return df[col].mode().iloc[0]
     return fallback
 
-# Defaults
-default_age        = int(round(_median('Age', 60)))
-default_gluc       = round(_median('Glucose', 100.0), 1)
-default_height_cm  = 150
-default_weight_kg  = 80.0
-default_bmi_guess  = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
-default_hyp        = _mode('Hypertension', 1)      # 0/1 typical
-default_hd         = _mode('Heart Disease', 0)
-default_work       = _mode('Work Type', 'Private')
-default_res        = _mode('Residence Type', 'Urban')
-default_smoke      = _mode('Smoking Status', 'smokes')
-default_married    = int(_mode('Married', 0))
+default_age   = int(round(_median('Age', 60)))
+default_gluc  = round(_median('Glucose', 100.0), 1)
+# BMI is the only body-size input now
+default_bmi   = round(_median('BMI', 27.0), 1)
+default_hyp   = _mode('Hypertension', 1)
+default_hd    = _mode('Heart Disease', 0)
+default_work  = _mode('Work Type', 'Private')
+default_res   = _mode('Residence Type', 'Urban')
+default_smoke = _mode('Smoking Status', 'smokes')
+default_married = int(_mode('Married', 0))
 married_default_index = 1 if default_married == 1 else 0
 
 sex_opts       = ['Female', 'Male', 'Other']
@@ -110,7 +82,7 @@ smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
 def _yesno_from01(val01):  # helper for 0/1 defaults -> 'Yes'/'No'
     return 'Yes' if str(val01) == '1' else 'No'
 
-# ========== Model loader (pipeline handles preprocessing) ==========
+# ===== Model loader (pipeline handles preprocessing) =====
 @st.cache_resource(show_spinner=True)
 def load_model_and_threshold():
     base = Path(__file__).resolve().parents[1]
@@ -143,14 +115,13 @@ except Exception as e:
     st.exception(e)
     st.stop()
 
-# ========== Form (submit inside; no mixed numeric types) ==========
+# ===== Form (BMI only; types are consistent) =====
 with st.form("patient_form"):
     st.markdown("### Enter Patient Data")
     c1, c2 = st.columns(2)
 
     with c1:
-        age = ni_int("Age", 1, 120, default_age, 1)
-
+        age = st.number_input("Age", min_value=1, max_value=120, value=int(default_age), step=1)
         hypertension_disp = st.radio(
             "Hypertension", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hyp))
@@ -172,25 +143,27 @@ with st.form("patient_form"):
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
 
-        glucose = ni_float("Glucose (mg/dl)", 0.0, 1000.0, default_gluc, 0.1)
+        glucose = st.number_input(
+            "Glucose (mg/dl)",
+            min_value=0.0, max_value=1000.0,
+            value=float(default_gluc), step=0.1
+        )
 
-        # Height: all-int mode
-        height_cm = ni_int("Height (cm)", 50, 300, default_height_cm, 1, key="risk_height")
-
-        # Weight: all-float mode (THIS WAS THE CRASH — keep all four as floats)
-        weight_kg = ni_float("Weight (kg)", 10.0, 300.0, default_weight_kg, 1.0, key="risk_weight")
-
-        height_m = height_cm / 100.0
-        bmi_value = to_float(weight_kg) / (height_m ** 2) if height_m > 0 else to_float(default_bmi_guess)
+        # ✅ BMI: single float input (no height/weight on this page)
+        bmi_value = st.number_input(
+            "BMI",
+            min_value=5.0, max_value=80.0,
+            value=float(default_bmi), step=0.1
+        )
 
         smoking = st.selectbox(
             "Smoking Status", smoke_opts,
             index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
         )
 
-    submitted = st.form_submit_button("Predict")  # MUST be inside the form
+    submitted = st.form_submit_button("Predict")
 
-# ========== Map form -> raw model input (pipeline will encode) ==========
+# ===== Build raw input row (pipeline will encode) =====
 def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
                           married_disp, work_type, residence_type, glucose, bmi, smoking):
     return pd.DataFrame([{
@@ -200,13 +173,14 @@ def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
         "Married": 1.0 if married_disp == "Yes" else 0.0,
         "Glucose": float(glucose),
         "BMI": float(bmi),
+        # raw categoricals; your sklearn Pipeline should handle OHE
         "Sex": sex,
         "Work Type": work_type,
         "Residence Type": residence_type,
         "Smoking?": smoking,
     }])
 
-# ========== Gauge UI ==========
+# ===== Gauge helpers =====
 def band_and_color(score: float, thr_pct: float = 50.0):
     if score < min(33.0, thr_pct * 0.66):
         return "Low", "#2ca02c"
@@ -261,7 +235,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ========== Predict ==========
+# ===== Predict on submit =====
 if submitted:
     X_user = build_model_input_raw(
         age=age,
@@ -296,6 +270,7 @@ if submitted:
     st.markdown(f"**Predicted probability:** `{prob:.3f}`")
     st.markdown(f"**Decision (threshold = {DECISION_THR:.3f}):** {'**Stroke risk (1)**' if pred==1 else '**Low stroke risk (0)**'}")
 
+    # NOTE: No height/weight in the session payload now — Preventive page does not need them.
     st.session_state['rp_input'] = {
         'Age': age,
         'Sex': sex,
@@ -305,8 +280,6 @@ if submitted:
         'Work Type': work_type,
         'Residence Type': residence_type,
         'Glucose': float(glucose),
-        'Height (cm)': float(height_cm),
-        'Weight (kg)': float(weight_kg),
         'BMI': float(bmi_value),
         'Smoking Status': smoking,
         'pred_proba': prob,
