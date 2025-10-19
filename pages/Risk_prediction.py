@@ -1,6 +1,14 @@
 # risk_prediction.py
 import streamlit as st
 
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import json, pickle
+
+from utils.ui_safety import begin_page
+
 PAGE_ID = "risk-page"
 st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
 
@@ -17,16 +25,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-from pathlib import Path
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import json, pickle
-
-from utils.ui_safety import begin_page
-
-
 # -----------------------------
 # Radio styling
 # -----------------------------
