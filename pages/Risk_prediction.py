@@ -87,38 +87,42 @@ def _yesno_from01(val01):
     return 'Yes' if str(val01) == '1' else 'No'
 
 # -----------------------------
-# Load trained model + threshold  (ACTUALLY CALL IT SO VARIABLES EXIST)
+# Load trained model + threshold
 # -----------------------------
 @st.cache_resource(show_spinner=True)
 def load_model_and_meta():
     base = Path(__file__).resolve().parents[1]  # repo root (folder with Dashboard.py)
-    model_path = base / "artifacts" / "diagnostic" / "model.pkl"        # adjust if needed
-    meta_path  = base / "artifacts" / "diagnostic" / "model_meta.json"  # optional
+    model_path = base / "assets" / "trained_model_final.pickle"
 
+    # --- Check existence ---
     if not model_path.exists():
-        avail = [p.name for p in (model_path.parent.glob('*'))] if model_path.parent.exists() else []
-        raise FileNotFoundError(f"Model file not found: {model_path}\nAvailable: {avail}")
+        assets_list = [p.name for p in (base / "assets").glob("*")] if (base / "assets").exists() else []
+        raise FileNotFoundError(
+            f"Model file not found at: {model_path}\n"
+            f"Available under /assets: {assets_list}"
+        )
 
-    # If you used custom transformers, import them here BEFORE loading
-    # from utils.preprocessing import MyCustomImputer, MyEncoder
-
+    # --- Load model ---
     try:
         model = joblib.load(model_path)
-    except Exception as e_joblib:
+    except Exception:
         import pickle
         with open(model_path, "rb") as f:
             model = pickle.load(f)
 
+    # --- Default values ---
     decision_thr, expected_cols = 0.5, None
+
+    # --- Optional meta info ---
     if meta_path.exists():
         try:
-            meta = json.loads(meta_path.read_text())
-            decision_thr  = float(meta.get("decision_threshold", decision_thr))
-            expected_cols = meta.get("expected_columns", expected_cols)
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            decision_thr  = float(meta.get("decision_threshold", meta.get("DECISION_THR", decision_thr)))
+            expected_cols = meta.get("expected_columns", meta.get("EXPECTED_COLS", expected_cols))
         except Exception:
             pass
 
-    # Attempt to get feature names from pipeline if not in meta
+    # --- Try to get feature names from pipeline if not found ---
     if expected_cols is None:
         try:
             expected_cols = list(model.get_feature_names_out())
@@ -127,7 +131,8 @@ def load_model_and_meta():
 
     return model, decision_thr, expected_cols
 
-# <- this line actually defines the globals used later
+
+# <- define globals used later
 try:
     model, DECISION_THR, EXPECTED_COLS = load_model_and_meta()
 except Exception as e:
