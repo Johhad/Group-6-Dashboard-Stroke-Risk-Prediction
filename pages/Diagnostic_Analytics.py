@@ -218,6 +218,26 @@ elif png_path.exists():
 else:
     st.info("Missing: artifacts/diagnostic/scatter_matrix.html (or .png)")
 
+st.markdown(
+    """
+    <div style="
+        background-color:#f7fbff;
+        border-left:4px solid #1f77b4;
+        padding:12px 14px;
+        border-radius:8px;
+        margin-top:15px;
+        margin-bottom:25px;">
+        <b>Key Findings (for quick understanding)</b><br><br>
+        • <b>Age</b> shows a clear upward trend, indicating that most values rise gradually with age distribution.<br>
+        • <b>Glucose</b> and <b>BMI</b> appear widely scattered without a strong visible pattern, suggesting only weak relationships between these variables.<br>
+        • A few extreme points in glucose and BMI may represent outliers or patients with special metabolic conditions.<br>
+        • Overall, the variables are mostly independent, meaning each provides distinct information for understanding stroke risk.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # =====================================================================
 # Clustering by K=2 (aligned to Stroke) — PCA scatter + KPIs
 # =====================================================================
@@ -280,5 +300,25 @@ else:
     m2.metric("Rows used", f"{X_all.shape[0]}")
     m3.metric("K (clusters)", "2")
     m4.metric("Silhouette score", f"{sil:.3f}" if np.isfinite(sil) else "—")
+
+st.markdown(
+    """
+    <div style="
+        background-color:#f7fbff;
+        border-left:4px solid #1f77b4;
+        padding:12px 14px;
+        border-radius:8px;
+        margin-top:15px;
+        margin-bottom:25px;">
+        <b>Key Findings (for quick understanding)</b><br><br>
+        • The model automatically grouped patients into <b>two main clusters</b>: one “<b>stroke-like</b>” (red) and one “<b>no-stroke-like</b>” (blue).<br>
+        • Most stroke cases appear inside the red cluster, meaning their clinical profiles share similar patterns.<br>
+        • A few overlaps exist where some non-stroke patients fall into the stroke-like cluster — this indicates borderline or at-risk individuals.<br>
+        • The <b>silhouette score of 0.174</b> shows modest separation — clusters are distinguishable but not completely distinct.<br>
+        • Overall, clustering highlights two broad risk groups that can guide early screening or targeted intervention strategies.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown("</div>", unsafe_allow_html=True)
