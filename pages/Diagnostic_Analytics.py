@@ -35,6 +35,8 @@ from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
+import plotly.express as px
+import plotly.graph_objects as go
 
 #st.title("🩺 Diagnostic Analytics")
 st.caption("Diagnostic analysis of the dataset used in this project.")
