@@ -94,9 +94,13 @@ smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
 def _yesno_from01(val01):  # 0/1 -> Yes/No
     return 'Yes' if str(val01) == '1' else 'No'
 
-# ---------- Load model + expected columns ----------
+# ---------- Load model + metadata ----------
 @st.cache_resource(show_spinner=True)
 def load_model_thr_cols():
+    """
+    Loads model, decision threshold, and inspects whether the model has a 'prep' step.
+    Returns: model, decision_thr, expected_encoded_cols, has_prep, raw_cols
+    """
     base = Path(__file__).resolve().parents[1]
     model_path = base / "assets" / "trained_model_final.pickle"
     thr_path   = base / "assets" / "decision_threshold.json"
@@ -117,18 +121,40 @@ def load_model_thr_cols():
         except Exception:
             pass
 
-    # try to read the expected training columns from the prep step
+    has_prep = False
+    raw_cols = None
     expected_cols = None
     try:
-        # typical: ColumnTransformer([("num", <scaler>, expected_cols)], remainder="drop")
-        expected_cols = list(model.named_steps["prep"].transformers_[0][2])
+        prep = model.named_steps.get("prep", None) if hasattr(model, "named_steps") else None
+        if prep is not None and hasattr(prep, "transformers_"):
+            has_prep = True
+            # raw columns the preprocessor expects
+            raw_cols = []
+            for _, _, cols in prep.transformers_:
+                if cols is None:
+                    continue
+                if isinstance(cols, (list, tuple, np.ndarray, pd.Index)):
+                    raw_cols.extend(list(cols))
+                elif isinstance(cols, str):
+                    raw_cols.append(cols)
+            # encoded output, if ever needed
+            try:
+                expected_cols = list(prep.get_feature_names_out())
+            except Exception:
+                expected_cols = None
+        else:
+            # Model expects encoded inputs directly
+            try:
+                expected_cols = list(model.get_feature_names_out())
+            except Exception:
+                expected_cols = None
     except Exception:
         pass
 
-    return model, decision_thr, expected_cols
+    return model, decision_thr, expected_cols, has_prep, raw_cols
 
 try:
-    model, DECISION_THR, EXPECTED_COLS = load_model_thr_cols()
+    model, DECISION_THR, EXPECTED_COLS, HAS_PREP, RAW_COLS = load_model_thr_cols()
 except Exception as e:
     st.error("Model failed to load.")
     st.exception(e)
@@ -176,17 +202,44 @@ with st.form("patient_form"):
 
     submitted = st.form_submit_button("Predict")
 
-# ---------- Build EXACT column frame the model expects ----------
+# ---------- Builders ----------
+def build_model_input_raw(raw_cols,
+    age, hypertension_disp, heart_disease_disp, sex,
+    married_disp, work_type, residence_type, glucose, bmi, smoking
+):
+    """
+    Build a single-row DataFrame using the ORIGINAL training feature names.
+    Used when pipeline has a 'prep' step that handles encoding/scaling.
+    """
+    if not raw_cols:
+        raise RuntimeError("Raw column list is unavailable.")
+
+    row = {c: 0 for c in raw_cols}
+
+    # numeric/binary
+    if "Age" in row:                 row["Age"] = float(age)
+    if "Hypertension" in row:        row["Hypertension"] = 1 if hypertension_disp == "Yes" else 0
+    if "Heart Disease" in row:       row["Heart Disease"] = 1 if heart_disease_disp == "Yes" else 0
+    if "Married" in row:             row["Married"] = 1 if married_disp == "Yes" else 0
+    if "Glucose" in row:             row["Glucose"] = float(glucose)
+    if "BMI" in row:                 row["BMI"] = float(bmi)
+
+    # categorical RAW
+    if "Sex" in row:                 row["Sex"] = sex
+    if "Work Type" in row:           row["Work Type"] = work_type
+    if "Residence Type" in row:      row["Residence Type"] = residence_type
+    if "Smoking?" in row:            row["Smoking?"] = smoking
+
+    return pd.DataFrame([row], columns=raw_cols)
+
 def build_model_input_encoded(expected_cols,
     age, hypertension_disp, heart_disease_disp, sex,
     married_disp, work_type, residence_type, glucose, bmi, smoking
 ):
     """
-    Build a single-row DataFrame with exactly `expected_cols` the model was trained on.
-    Any missing columns are filled with 0; relevant dummies set based on current inputs.
+    Build a single-row DataFrame with exactly `expected_cols` (already-encoded schema).
     """
     if not expected_cols:
-        # Fallback to raw; but your model expects encoded, so we keep the builder strict.
         raise RuntimeError("Model's expected column list is unavailable. Cannot encode features.")
 
     row = {col: 0.0 for col in expected_cols}
@@ -214,34 +267,26 @@ def build_model_input_encoded(expected_cols,
     if "Residence Type_Urban" in row:    row["Residence Type_Urban"] = 1.0 if residence_type == "Urban" else 0.0
     if "Residence Type_Rural" in row:    row["Residence Type_Rural"] = 1.0 if residence_type == "Rural" else 0.0
 
-    # Smoking dummies (values match your dataset labels)
+    # Smoking dummies
     if "Smoking?_formerly smoked" in row:  row["Smoking?_formerly smoked"] = 1.0 if smoking == "formerly smoked" else 0.0
     if "Smoking?_never smoked" in row:     row["Smoking?_never smoked"]    = 1.0 if smoking == "never smoked" else 0.0
     if "Smoking?_smokes" in row:           row["Smoking?_smokes"]          = 1.0 if smoking == "smokes" else 0.0
     if "Smoking?_Unknown" in row:          row["Smoking?_Unknown"]         = 1.0 if smoking == "Unknown" else 0.0
 
-    # return with column order EXACTLY as expected
     return pd.DataFrame([row], columns=expected_cols)
 
-# ---------- Gauge helpers ----------
-def band_and_color(score: float, thr_pct: float = 50.0):
-    if score < min(33.0, thr_pct * 0.66):
-        return "Low", "#2ca02c"
-    elif score < max(66.0, thr_pct):
-        return "Moderate", "#ff7f0e"
-    return "High", "#d62728"
+# ---------- Threshold-aware gauge ----------
+def risk_badge(score_pct: float, thr_pct: float, margin: float = 5.0):
+    if score_pct < thr_pct - margin:
+        return "Below threshold", "#2ca02c"   # green
+    elif score_pct <= thr_pct + margin:
+        return "Borderline", "#ff7f0e"        # orange
+    else:
+        return "Above threshold", "#d62728"   # red
 
-def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: float = 0.5):
-    score = float(score)  # make sure it’s numeric
-    # label & color
-    def band_and_color(s: float, thr_pct: float = 50.0):
-        if s < min(33.0, thr_pct * 0.66):
-            return "Low", "#2ca02c"
-        elif s < max(66.0, thr_pct):
-            return "Moderate", "#ff7f0e"
-        return "High", "#d62728"
-
-    band, color = band_and_color(score, thr_pct=decision_thr * 100)
+def render_risk_gauge(score_pct: float, title="Model-Estimated Stroke Risk", decision_thr: float = 0.5):
+    thr_pct = float(decision_thr) * 100.0
+    label, color = risk_badge(score_pct, thr_pct, margin=5.0)
 
     st.markdown(
         f"""
@@ -250,28 +295,37 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
             <span style="
                 display:inline-block; padding:6px 12px; border-radius:999px;
                 background:{color}1A; color:{color}; font-weight:600; font-size:0.95rem;">
-                {band} Risk • {score:.0f}/100
+                {label} • {score_pct:.0f}/100
             </span>
         </div>
         """,
         unsafe_allow_html=True
     )
 
+    margin = 5.0
+    lo = max(0.0, thr_pct - margin)
+    hi = min(100.0, thr_pct + margin)
+    steps = [
+        {'range': [0, lo], 'color': '#e8f5e9'},   # green
+        {'range': [lo, hi], 'color': '#fff3e0'},  # borderline
+        {'range': [hi, 100], 'color': '#ffebee'}  # red
+    ]
+
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=score,
+        value=score_pct,
         number={'suffix': "/100", 'font': {'size': 46}},
         gauge={
             'shape': "angular",
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#888"},
             'bar': {'color': color, 'thickness': 0.25},
             'bgcolor': "rgba(0,0,0,0)",
-            'steps': [
-                {'range': [0, 33], 'color': '#e8f5e9'},
-                {'range': [33, 66], 'color': '#fff3e0'},
-                {'range': [66, 100], 'color': '#ffebee'}
-            ],
-            'threshold': {'line': {'color': color, 'width': 4}, 'thickness': 0.75, 'value': score}
+            'steps': steps,
+            'threshold': {
+                'line': {'color': '#fb8c00', 'width': 4},
+                'thickness': 0.75,
+                'value': thr_pct
+            }
         },
         title={'text': ""}
     ))
@@ -283,11 +337,12 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
         font=dict(size=14)
     )
     fig.add_annotation(
-        text=f"Decision threshold ≈ {decision_thr:.3f}",
+        text=f"Decision threshold = {decision_thr:.3f}",
         x=0.5, y=0.90, showarrow=False,
         font=dict(size=14, color="#666")
     )
     st.plotly_chart(fig, use_container_width=True)
+
     st.markdown(
         """
         <div style="
@@ -298,32 +353,46 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
             margin-top:15px;
             margin-bottom:25px;">
             <b>Quick Read </b><br><br>
-            • The gauge shows how likely the patient is to experience a stroke based on their personal health profile and risk factors.<br>
-            • The color zones indicate <b>low</b>, <b>moderate</b>, or <b>high</b> risk levels — helping to quickly identify patients who may need closer monitoring.<br>
-            • The orange line represents the <b>decision threshold</b> used by the model to separate lower-risk from higher-risk cases.<br>
-            • This estimate is meant to <b>support clinical judgment</b> — it does not replace diagnosis, but helps prioritize prevention and follow-up actions.
+            • The gauge is aligned to the model’s decision threshold: green below, orange near, red above.<br>
+            • The orange line marks the exact threshold used to convert probability into a class decision.<br>
+            • Use this score to support clinical judgement and prioritize prevention/follow-up actions.
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-
 # ---------- Predict ----------
 if submitted:
+    # Choose builder based on the model structure
     try:
-        X_user = build_model_input_encoded(
-            EXPECTED_COLS,
-            age=age,
-            hypertension_disp=hypertension_disp,
-            heart_disease_disp=heart_disease_disp,
-            sex=sex,
-            married_disp=married_disp,
-            work_type=work_type,
-            residence_type=residence_type,
-            glucose=glucose,
-            bmi=bmi_value,
-            smoking=smoking
-        )
+        if HAS_PREP:
+            X_user = build_model_input_raw(
+                RAW_COLS,
+                age=age,
+                hypertension_disp=hypertension_disp,
+                heart_disease_disp=heart_disease_disp,
+                sex=sex,
+                married_disp=married_disp,
+                work_type=work_type,
+                residence_type=residence_type,
+                glucose=glucose,
+                bmi=bmi_value,
+                smoking=smoking
+            )
+        else:
+            X_user = build_model_input_encoded(
+                EXPECTED_COLS,
+                age=age,
+                hypertension_disp=hypertension_disp,
+                heart_disease_disp=heart_disease_disp,
+                sex=sex,
+                married_disp=married_disp,
+                work_type=work_type,
+                residence_type=residence_type,
+                glucose=glucose,
+                bmi=bmi_value,
+                smoking=smoking
+            )
     except Exception as e:
         st.error("Failed to prepare features for the model.")
         st.exception(e)
@@ -369,3 +438,12 @@ else:
     st.info("Fill the form and click **Predict** to see the model-estimated risk.")
 
 st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
+
+
+
+
+
+
+
+
+
