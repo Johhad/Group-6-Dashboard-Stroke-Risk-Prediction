@@ -5,3 +5,5 @@ plotly-express==0.4.1
 scikit-learn==1.7.0
 shap==0.48.0
 watchdog==6.0.0
+imbalanced-learn==0.12.2
+scikit-learn==1.4.2
