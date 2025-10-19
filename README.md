@@ -116,7 +116,7 @@ font = "sans serif"
 
 ### Algorithm
 - **Model**: Support Vector Machine (SVM), Linear
-- **Matric**: Reacll: 0.71, f1-score: 0.53, ROC-AUC: 0.77
+- **Matric**: Reacll: 0.71, f1-score: 0.58, ROC-AUC: 0.76
 - **Validation**: 5-fold cross-validation
 
 ## 🚀 Deployment

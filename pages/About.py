@@ -84,7 +84,7 @@ with col1:
         - **Algorithm:** Support Vector Machine (SVM), Linear
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.53, ROC-AUC: 0.77
+        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.58, ROC-AUC: 0.76
         - **Cross-validation:** 5-fold
         
         ### Key Features
