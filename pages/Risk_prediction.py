@@ -1,21 +1,38 @@
-# risk_prediction.py
+# pages/Risk_prediction.py
 import streamlit as st
-
 from pathlib import Path
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import json, pickle
 
-from utils.ui_safety import begin_page
-
+# ========== Page header / styling ==========
 PAGE_ID = "risk-page"
 st.markdown(f"<div id='{PAGE_ID}'>", unsafe_allow_html=True)
+st.markdown(f"""
+<style>
+#{PAGE_ID} div[role='radiogroup'] label {{
+  background:#fff; border:2px solid #cbd5e1; border-radius:10px;
+  padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:hover {{
+  background:#e2e8f0; border-color:#94a3b8;
+}}
+#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
+  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important;
+  box-shadow:0 0 4px rgba(37,99,235,.6);
+}}
+#{PAGE_ID} div[role='radiogroup'] {{
+  display:flex; gap:6px; flex-wrap:wrap;
+}}
+</style>
+""", unsafe_allow_html=True)
 
-# (Only keep this if it's not already called in your main Dashboard)
-# st.set_page_config(page_title="Risk Prediction", page_icon="🧑‍⚕️", layout="wide")
-
-begin_page("Risk Prediction 🧑‍⚕️")
+try:
+    from utils.ui_safety import begin_page
+    begin_page("Risk Prediction 🧑‍⚕️")
+except Exception:
+    st.title("Risk Prediction 🧑‍⚕️")
 
 st.markdown(
     """
@@ -25,28 +42,40 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-# -----------------------------
-# Radio styling
-# -----------------------------
-st.markdown(f"""
-<style>
-#{PAGE_ID} div[role='radiogroup'] label {{
-  background:#fff; border:2px solid #cbd5e1; border-radius:10px; padding:6px 16px; margin:4px; color:#1e293b; font-weight:600; transition:all .25s;
-}}
-#{PAGE_ID} div[role='radiogroup'] label:hover {{ background:#e2e8f0; border-color:#94a3b8; }}
-#{PAGE_ID} div[role='radiogroup'] label:has(input:checked) {{
-  background:#2563eb !important; color:#fff !important; border-color:#1e40af !important; box-shadow:0 0 4px rgba(37,99,235,.6);
-}}
-#{PAGE_ID} div[role='radiogroup'] {{ display:flex; gap:6px; flex-wrap:wrap; }}
-</style>
-""", unsafe_allow_html=True)
 
-# -----------------------------
-# Data loader (for sensible UI defaults)
-# -----------------------------
+# ========== Helpers to prevent mixed-type inputs ==========
+def to_float(x): return float(x) if x is not None else 0.0
+def to_int(x): return int(x) if x is not None else 0
+
+def ni_float(label, min_v, max_v, value, step, **kwargs):
+    # all args must be float to avoid StreamlitMixedNumericTypesError
+    return st.number_input(
+        label,
+        min_value=float(min_v),
+        max_value=float(max_v),
+        value=float(value),
+        step=float(step),
+        **kwargs
+    )
+
+def ni_int(label, min_v, max_v, value, step, **kwargs):
+    # all args must be int to avoid StreamlitMixedNumericTypesError
+    return st.number_input(
+        label,
+        min_value=int(min_v),
+        max_value=int(max_v),
+        value=int(value),
+        step=int(step),
+        **kwargs
+    )
+
+# ========== Data (for sensible defaults) ==========
 @st.cache_data
 def load_data():
-    return pd.read_csv("./jupyter-notebooks/processed_data.csv")
+    try:
+        return pd.read_csv("./jupyter-notebooks/processed_data.csv")
+    except Exception:
+        return pd.DataFrame()
 
 df = load_data()
 
@@ -58,32 +87,30 @@ def _mode(col, fallback):
         return df[col].mode().iloc[0]
     return fallback
 
-default_age        = int(round(_median('Age', 50)))
+# Defaults
+default_age        = int(round(_median('Age', 60)))
 default_gluc       = round(_median('Glucose', 100.0), 1)
 default_height_cm  = 150
-default_weight_kg  = 60.0
-default_bmi        = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
-default_hyp        = _mode('Hypertension', 1)       # 0/1 common
-default_hd         = _mode('Heart Disease', 0)      # 0/1
+default_weight_kg  = 80.0
+default_bmi_guess  = round(default_weight_kg / ((default_height_cm / 100) ** 2), 1)
+default_hyp        = _mode('Hypertension', 1)      # 0/1 typical
+default_hd         = _mode('Heart Disease', 0)
 default_work       = _mode('Work Type', 'Private')
 default_res        = _mode('Residence Type', 'Urban')
-default_smoke      = _mode('Smoking Status', 'never smoked')
+default_smoke      = _mode('Smoking Status', 'smokes')
 default_married    = int(_mode('Married', 0))
-married_default_ix = 1 if default_married == 1 else 0
+married_default_index = 1 if default_married == 1 else 0
 
 sex_opts       = ['Female', 'Male', 'Other']
-default_sex    = 'Female'
 yes_no_display = ['No', 'Yes']
 work_type_opts = ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked']
 res_type_opts  = ['Urban', 'Rural']
 smoke_opts     = ['formerly smoked', 'never smoked', 'smokes', 'Unknown']
 
-def _yesno_from01(val01):
+def _yesno_from01(val01):  # helper for 0/1 defaults -> 'Yes'/'No'
     return 'Yes' if str(val01) == '1' else 'No'
 
-# -----------------------------
-# Load trained model + threshold (NO expected_cols; pipeline handles preprocessing)
-# -----------------------------
+# ========== Model loader (pipeline handles preprocessing) ==========
 @st.cache_resource(show_spinner=True)
 def load_model_and_threshold():
     base = Path(__file__).resolve().parents[1]
@@ -93,19 +120,12 @@ def load_model_and_threshold():
     if not model_path.exists():
         assets_list = [p.name for p in (base / "assets").glob("*")] if (base / "assets").exists() else []
         raise FileNotFoundError(
-            f"Model file not found at: {model_path}\n"
-            f"Available under /assets: {assets_list}"
+            f"Model file not found at: {model_path}\nAvailable under /assets: {assets_list}"
         )
 
-    # Load pipeline
-    try:
-        with open(model_path, "rb") as f:
-            model = pickle.load(f)
-    except Exception as e:
-        st.error(f"Failed to load model: {e}")
-        raise
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
 
-    # Threshold
     decision_thr = 0.5
     if thr_path.exists():
         try:
@@ -123,15 +143,14 @@ except Exception as e:
     st.exception(e)
     st.stop()
 
-# -----------------------------
-# Form
-# -----------------------------
+# ========== Form (submit inside; no mixed numeric types) ==========
 with st.form("patient_form"):
     st.markdown("### Enter Patient Data")
-
     c1, c2 = st.columns(2)
+
     with c1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=default_age, step=1)
+        age = ni_int("Age", 1, 120, default_age, 1)
+
         hypertension_disp = st.radio(
             "Hypertension", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hyp))
@@ -140,8 +159,8 @@ with st.form("patient_form"):
             "Heart Disease", yes_no_display, horizontal=True,
             index=yes_no_display.index(_yesno_from01(default_hd))
         )
-        sex = st.selectbox("Gender", sex_opts, index=sex_opts.index(default_sex))
-        married_disp = st.radio("Ever Married?", yes_no_display, horizontal=True, index=married_default_ix)
+        sex = st.selectbox("Gender", sex_opts, index=sex_opts.index('Female'))
+        married_disp = st.radio("Ever Married?", yes_no_display, horizontal=True, index=married_default_index)
 
     with c2:
         work_type = st.selectbox(
@@ -152,28 +171,28 @@ with st.form("patient_form"):
             "Residence Type", res_type_opts,
             index=res_type_opts.index(default_res) if default_res in res_type_opts else 0
         )
-        glucose = st.number_input("Glucose (mg/dl)", min_value=0.0, value=default_gluc, step=0.1)
 
-        height_cm = st.number_input("Height (cm)", min_value=50, max_value=300, value=default_height_cm, step=1, key="risk_height")
-        weight_kg = st.number_input("Weight (kg)", min_value=10, max_value=300, value=default_weight_kg, step=1, key="risk_weight")
+        glucose = ni_float("Glucose (mg/dl)", 0.0, 1000.0, default_gluc, 0.1)
+
+        # Height: all-int mode
+        height_cm = ni_int("Height (cm)", 50, 300, default_height_cm, 1, key="risk_height")
+
+        # Weight: all-float mode (THIS WAS THE CRASH — keep all four as floats)
+        weight_kg = ni_float("Weight (kg)", 10.0, 300.0, default_weight_kg, 1.0, key="risk_weight")
+
         height_m = height_cm / 100.0
-        bmi_value = float(weight_kg) / (height_m ** 2) if height_m > 0 else default_bmi
+        bmi_value = to_float(weight_kg) / (height_m ** 2) if height_m > 0 else to_float(default_bmi_guess)
 
         smoking = st.selectbox(
             "Smoking Status", smoke_opts,
             index=smoke_opts.index(default_smoke) if default_smoke in smoke_opts else 1
         )
 
-    submitted = st.form_submit_button("Predict")
+    submitted = st.form_submit_button("Predict")  # MUST be inside the form
 
-# -----------------------------
-# Build raw input row (pipeline will encode)
-# -----------------------------
+# ========== Map form -> raw model input (pipeline will encode) ==========
 def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
                           married_disp, work_type, residence_type, glucose, bmi, smoking):
-    """
-    Returns a single-row DataFrame with RAW feature names that the pipeline expects.
-    """
     return pd.DataFrame([{
         "Age": float(age),
         "Hypertension": 1.0 if hypertension_disp == "Yes" else 0.0,
@@ -181,16 +200,13 @@ def build_model_input_raw(age, hypertension_disp, heart_disease_disp, sex,
         "Married": 1.0 if married_disp == "Yes" else 0.0,
         "Glucose": float(glucose),
         "BMI": float(bmi),
-        # raw categoricals; pipeline's transformers will one-hot encode these
         "Sex": sex,
         "Work Type": work_type,
         "Residence Type": residence_type,
         "Smoking?": smoking,
     }])
 
-# -----------------------------
-# Gauge helpers
-# -----------------------------
+# ========== Gauge UI ==========
 def band_and_color(score: float, thr_pct: float = 50.0):
     if score < min(33.0, thr_pct * 0.66):
         return "Low", "#2ca02c"
@@ -245,9 +261,7 @@ def render_risk_gauge(score: float, title="Estimated Risk Score", decision_thr: 
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# -----------------------------
-# Predict on submit
-# -----------------------------
+# ========== Predict ==========
 if submitted:
     X_user = build_model_input_raw(
         age=age,
@@ -269,7 +283,6 @@ if submitted:
             from scipy.special import expit
             prob = float(expit(model.decision_function(X_user))[0])
         else:
-            # fallback for regressors or binary outputs
             pred_raw = model.predict(X_user)[0]
             prob = float(pred_raw) if isinstance(pred_raw, (int, float, np.floating)) else float(pred_raw == 1)
     except Exception as e:
@@ -299,9 +312,7 @@ if submitted:
         'pred_proba': prob,
         'predicted': pred
     }
-
-    st.info("Prediction generated by the trained pipeline. The gauge reflects the predicted probability (0–100).")
 else:
     st.info("Fill the form and click **Predict** to see the model-estimated risk.")
 
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("<div style='height:100vh;background-color:white;'></div>", unsafe_allow_html=True)
