@@ -77,14 +77,14 @@ with col1:
         
          ### Dataset used
         - **Dataset:** Kaggle Stroke Prediction Dataset
-        - **Key Variables:** 12 features including patient demograpics (age,gener), health conditions, work, residency and stroke
+        - **Key Variables:** 10 features including patient demograpics (age,gener), health conditions, work, residency and stroke
         - **Link:** https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset      
         
         ### Model Information
-        - **Algorithm:** Support Vector Machine (SVM), Linear
+        - **Algorithm:** Support Vector Machine (SVM)
         - **Features:** 10 risk factors
         - **Training Data:** 5,000 patient records
-        - **Evaluation Matrix:** Reacll: 0.71, f1-score: 0.53, ROC-AUC: 0.77
+        - **Evaluation Matrix:** Recall: 0.71, f1-score: 0.53, ROC-AUC: 0.77
         - **Cross-validation:** 5-fold
         
         ### Key Features
