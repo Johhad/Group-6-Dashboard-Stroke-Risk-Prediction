@@ -115,30 +115,41 @@ else:
                 sub_df = pd.concat([y_corr.rename(TARGET), X_corr[top_feats]], axis=1)
                 sub_corr = sub_df.corr()
 
-                # ---- FULL-WIDTH but compact height ----
-                plt.rcParams.update({
-                    "font.size": 9,
-                    "axes.titlesize": 11,
-                    "axes.labelsize": 9,
-                })
-                fig_w = 8.5   # wide enough to fit full page
-                fig_h = min(4.5, 2.0 + 0.22 * (len(top_feats) + 1))  # adaptively short
+                # ------- Build interactive lower-tri heatmap with Plotly -------
+                # mask upper triangle
+                mat = sub_corr.values.astype(float).copy()
+                iu = np.triu_indices_from(mat, k=1)
+                mat[iu] = np.nan
 
-                fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=110)
-                mask = np.triu(np.ones_like(sub_corr, dtype=bool), k=1)
-                sns.heatmap(
-                    sub_corr, mask=mask, annot=True, fmt=".2f",
-                    cmap="coolwarm", vmin=-0.6, vmax=0.6,
-                    square=False, cbar_kws={"shrink": 0.75},
-                    ax=ax, annot_kws={"size": 8}
+                # optional bounds to match your previous seaborn style
+                vmin, vmax = -0.6, 0.6
+                # height scales with matrix size (keeps it compact but readable)
+                h = int(np.clip(160 + 32 * (len(top_feats) + 1), 280, 700))
+
+                fig_heat = go.Figure(
+                    data=go.Heatmap(
+                        z=mat,
+                        x=sub_corr.columns,
+                        y=sub_corr.index,
+                        colorscale="RdBu",
+                        zmin=vmin, zmax=vmax, zmid=0,
+                        colorbar=dict(title="corr", len=0.8),
+                        hovertemplate=(
+                            "<b>%{y}</b> vs <b>%{x}</b><br>"
+                            "corr = %{z:.2f}<extra></extra>"
+                        ),
+                    )
                 )
-                ax.set_title(f"Top {len(top_feats)} correlations with {TARGET}", pad=8)
-                plt.xticks(rotation=45, ha="right")
-                plt.tight_layout()
+                # mimic seaborn orientation (target on top-left)
+                fig_heat.update_yaxes(autorange="reversed")
+                fig_heat.update_layout(
+                    title=f"Top {len(top_feats)} correlations with {TARGET}",
+                    height=h,
+                    margin=dict(t=48, b=20, l=60, r=20),
+                    xaxis=dict(tickangle=45),
+                )
+                st.plotly_chart(fig_heat, use_container_width=True, key="corr_heatmap")
 
-                # Full page width display, balanced height
-                st.pyplot(fig, clear_figure=True, use_container_width=True)
-                plt.close(fig)
 st.markdown(
     """
     <div style="
@@ -157,6 +168,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 # =========================
 # Pair plot (Age, Glucose, BMI)
 # =========================
